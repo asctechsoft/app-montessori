@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.REGION = exports.Timestamp = exports.FieldValue = exports.messaging = exports.storage = exports.auth = exports.db = void 0;
+const app_1 = require("firebase-admin/app");
+const firestore_1 = require("firebase-admin/firestore");
+Object.defineProperty(exports, "FieldValue", { enumerable: true, get: function () { return firestore_1.FieldValue; } });
+Object.defineProperty(exports, "Timestamp", { enumerable: true, get: function () { return firestore_1.Timestamp; } });
+const auth_1 = require("firebase-admin/auth");
+const storage_1 = require("firebase-admin/storage");
+const messaging_1 = require("firebase-admin/messaging");
+if ((0, app_1.getApps)().length === 0)
+    (0, app_1.initializeApp)();
+exports.db = (0, firestore_1.getFirestore)();
+exports.db.settings({ ignoreUndefinedProperties: true });
+exports.auth = (0, auth_1.getAuth)();
+const storage = () => (0, storage_1.getStorage)();
+exports.storage = storage;
+const messaging = () => (0, messaging_1.getMessaging)();
+exports.messaging = messaging;
+exports.REGION = 'asia-southeast1';

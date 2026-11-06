@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "contrast": [
+    {
+      "foreground": "action",
+      "background": "surface",
+      "ratio": 5.408,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "textPrimary",
+      "background": "background",
+      "ratio": 13.59,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "textSecondary",
+      "background": "surface",
+      "ratio": 6.027,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "textTertiary",
+      "background": "surface",
+      "ratio": 4.554,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "success",
+      "background": "successSoft",
+      "ratio": 5.238,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "warning",
+      "background": "warningSoft",
+      "ratio": 4.951,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "error",
+      "background": "errorSoft",
+      "ratio": 4.615,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "info",
+      "background": "infoSoft",
+      "ratio": 5.48,
+      "minimum": 4.5,
+      "pass": true
+    },
+    {
+      "foreground": "borderControl",
+      "background": "surface",
+      "ratio": 3.599,
+      "minimum": 3,
+      "pass": true
+    },
+    {
+      "foreground": "borderFocus",
+      "background": "surface",
+      "ratio": 4.501,
+      "minimum": 3,
+      "pass": true
+    }
+  ],
+  "checks": {
+    "financeExample": true,
+    "balanceExample": true,
+    "navItemsEach": 5,
+    "tokensSource": "tokens.json",
+    "offlinePreview": true,
+    "realDeviceQA": "Not run; native app not included",
+    "browserRenderingQA": "Not run: local browser executable unavailable. HTML structure, anchor targets and JS syntax checked; native/device rendering still required.",
+    "coreHelperChecks": "Passed: money formatting, invalid inputs, outstanding balance, disabled/loading, scope separation and navigation count.",
+    "files": [
+      "DESIGN_SYSTEM.md",
+      "IMPLEMENTATION_CHECKLIST.md",
+      "README.md",
+      "START_HERE.html",
+      "component-contracts.ts",
+      "core-examples.mjs",
+      "preview-script.js",
+      "tokens.css",
+      "tokens.json",
+      "tokens.ts",
+      "validation.json"
+    ]
+  }
+}

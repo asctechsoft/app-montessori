@@ -1,0 +1,92 @@
+rules_version = '2';
+
+// Storage rules — không công khai. Cấu trúc: orgs/{orgId}/campuses/{campusId}/<nhóm>/...
+// Quyền đọc/ghi dựa vào members/{uid} (permsByCampus, childIds) trong Firestore (firestore.get — cần bật liên kết Storage↔Firestore khi deploy).
+//   children/{childId}/...                ảnh đại diện, giấy tờ của trẻ
+//   dailyLogs/{dayKey}/{childId}/...      ảnh nhật ký (phụ huynh chỉ đọc khi nhật ký đã published)
+//   parent/{uid}/...                      phụ huynh tải lên: biên nhận chuyển khoản, ảnh đơn thuốc
+//   payments/..., expenses/..., staff/..., notifications/..., messages/{threadId}/...
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function mem(org) {
+      return firestore.get(/databases/(default)/documents/orgs/$(org)/members/$(request.auth.uid)).data;
+    }
+    function hasPermAt(m, perm, campus) {
+      return m.status == 'active' && m.kind != 'parent'
+        && (('*' in m.permsByCampus && perm in m.permsByCampus['*'])
+            || (campus in m.permsByCampus && perm in m.permsByCampus[campus]));
+    }
+    function can(org, perm, campus) { return request.auth != null && hasPermAt(mem(org), perm, campus); }
+    function activeMember(org) { return request.auth != null && mem(org).status == 'active'; }
+    function parentOf(org, childId) {
+      return request.auth != null && mem(org).status == 'active' && mem(org).kind == 'parent' && childId in mem(org).childIds;
+    }
+    function okUpload() {
+      return request.resource.size < 15 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    match /orgs/{orgId}/campuses/{campusId} {
+
+      match /children/{childId}/{allPaths=**} {
+        allow read: if can(orgId, 'children.read', campusId) || parentOf(orgId, childId);
+        allow write: if (can(orgId, 'children.write', campusId) || can(orgId, 'care.write', campusId)) && okUpload();
+      }
+
+      match /dailyLogs/{dayKey}/{childId}/{allPaths=**} {
+        allow read: if can(orgId, 'care.read', campusId)
+          || (parentOf(orgId, childId)
+              && firestore.get(/databases/(default)/documents/orgs/$(orgId)/dailyLogs/$(childId + '_' + dayKey)).data.status == 'published');
+        allow write: if can(orgId, 'care.write', campusId) && okUpload();
+      }
+
+      match /parent/{uid}/{allPaths=**} {
+        allow read: if request.auth != null && (request.auth.uid == uid
+          || can(orgId, 'children.read', campusId) || can(orgId, 'payments.read', campusId) || can(orgId, 'medication.read', campusId));
+        allow write: if request.auth != null && request.auth.uid == uid && activeMember(orgId) && mem(orgId).kind == 'parent' && okUpload();
+      }
+
+      match /payments/{allPaths=**} {
+        allow read: if can(orgId, 'payments.read', campusId);
+        allow write: if can(orgId, 'payments.write', campusId) && okUpload();
+      }
+      match /expenses/{allPaths=**} {
+        allow read: if can(orgId, 'expenses.read', campusId);
+        allow write: if can(orgId, 'expenses.write', campusId) && okUpload();
+      }
+      match /staff/{allPaths=**} {
+        allow read: if can(orgId, 'staff.read', campusId) || can(orgId, 'timekeeping.read', campusId);
+        allow write: if (can(orgId, 'staff.write', campusId) || can(orgId, 'timekeeping.approve', campusId)) && okUpload();
+      }
+      // chứng từ do nhân viên tự đính kèm (đề nghị bổ sung công, nghỉ phép...)
+      match /staffSelf/{uid}/{allPaths=**} {
+        allow read: if request.auth != null && (request.auth.uid == uid || can(orgId, 'staff.read', campusId) || can(orgId, 'timekeeping.read', campusId));
+        allow write: if request.auth != null && request.auth.uid == uid && activeMember(orgId) && mem(orgId).kind != 'parent' && okUpload();
+      }
+      match /notifications/{allPaths=**} {
+        allow read: if activeMember(orgId);
+        allow write: if can(orgId, 'notify.send', campusId) && okUpload();
+      }
+      match /messages/{threadId}/{allPaths=**} {
+        allow read: if request.auth != null && (can(orgId, 'inbox.handle', campusId)
+          || request.auth.uid in firestore.get(/databases/(default)/documents/orgs/$(orgId)/threads/$(threadId)).data.participants);
+        allow write: if request.auth != null && okUpload() && (can(orgId, 'inbox.handle', campusId)
+          || request.auth.uid in firestore.get(/databases/(default)/documents/orgs/$(orgId)/threads/$(threadId)).data.participants);
+      }
+      match /menus/{allPaths=**} {
+        allow read: if activeMember(orgId);
+        allow write: if can(orgId, 'kitchen.write', campusId) && okUpload();
+      }
+      match /assets/{allPaths=**} {
+        allow read: if can(orgId, 'assets.read', campusId);
+        allow write: if can(orgId, 'assets.write', campusId) && okUpload();
+      }
+    }
+
+    // Mặc định từ chối mọi đường dẫn khác.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

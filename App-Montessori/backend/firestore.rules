@@ -1,0 +1,499 @@
+rules_version = '2';
+
+// Firestore rules — hệ thống quản lý mầm non nhiều cơ sở (B2B). Xem docs/CONTRACT.md §1, §3, §5.
+//  - Mọi GHI đi qua Cloud Function `api` (Admin SDK) => client KHÔNG được ghi, trừ users/{uid} và users/{uid}/devices/*.
+//  - Client ĐỌC trực tiếp, bị chặn theo members/{uid}.permsByCampus (server tính), childIds, childPerms.
+//  - Mỗi lần đánh giá chỉ dùng get() tới members/{uid} (cùng một tài liệu => được cache/đếm một lần), không vòng lặp.
+//  - Query của client phải có điều kiện campusId (hoặc childId/uid) để rules đánh giá được.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- helpers
+    function signedIn() { return request.auth != null; }
+
+    function mem(org) {
+      return get(/databases/$(database)/documents/orgs/$(org)/members/$(request.auth.uid)).data;
+    }
+
+    function isActive(m) { return m.status == 'active'; }
+
+    // Quyền `perm` tại cơ sở `campus` (hoặc toàn org nhờ khóa '*'). campus == null => chỉ cấp toàn org.
+    function hasPermAt(m, perm, campus) {
+      return isActive(m) && m.kind != 'parent'
+        && (('*' in m.permsByCampus && perm in m.permsByCampus['*'])
+            || (campus != null && campus in m.permsByCampus && perm in m.permsByCampus[campus]));
+    }
+
+    function can(org, perm, campus) { return signedIn() && hasPermAt(mem(org), perm, campus); }
+
+    // Quyền ở BẤT KỲ phạm vi nào (permsAny do server tính = hợp quyền mọi cơ sở). Dùng cho members/roles/invites/backups.
+    function canAny(org, perm) {
+      return signedIn() && isActive(mem(org)) && mem(org).kind != 'parent' && perm in mem(org).permsAny;
+    }
+
+    function isActiveMember(org) { return signedIn() && isActive(mem(org)); }
+
+    // Phụ huynh có liên kết với trẻ childId.
+    function parentOf(org, childId) {
+      return signedIn() && isActive(mem(org)) && mem(org).kind == 'parent' && childId in mem(org).childIds;
+    }
+
+    // Phụ huynh có quyền xem học phí của trẻ.
+    function parentFees(org, childId) {
+      return parentOf(org, childId) && mem(org).childPerms[childId].viewFees == true;
+    }
+
+    function cid(data) { return data.get('campusId', null); }
+
+    // ---------------------------------------------------------------- hồ sơ cá nhân (client được ghi)
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'email', 'phone', 'photoUrl', 'locale', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == uid;
+      allow delete: if false;
+
+      match /devices/{deviceId} {
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['fcmToken', 'platform', 'orgId', 'updatedAt', 'appVersion', 'deviceModel']);
+      }
+    }
+
+    // collectionGroup('members'): mỗi người đọc bản ghi của chính mình (org.listMine phía client nếu cần).
+    match /{path=**}/members/{memberId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------- orgs/{orgId}
+    match /orgs/{orgId} {
+      allow read: if isActiveMember(orgId);
+      allow write: if false;
+
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || canAny(orgId, 'members.read'));
+        allow write: if false;
+      }
+      match /roles/{roleId} {
+        allow read: if canAny(orgId, 'members.read') || canAny(orgId, 'roles.manage');
+        allow write: if false;
+      }
+      match /invites/{inviteId} {
+        allow read: if canAny(orgId, 'members.read') || canAny(orgId, 'members.manage');
+        allow write: if false;
+      }
+
+      match /campuses/{campusId} {
+        allow read: if isActiveMember(orgId);
+        allow write: if false;
+      }
+
+      // ---- cấu hình học vụ: nhân viên theo quyền ở cơ sở; phụ huynh đọc để hiển thị lớp/lịch của con
+      match /academicYears/{id} {
+        allow read: if can(orgId, 'classes.read', cid(resource.data)) || can(orgId, 'campus.read', cid(resource.data)) || isActiveMember(orgId) && mem(orgId).kind == 'parent';
+        allow write: if false;
+      }
+      match /calendarExceptions/{id} {
+        allow read: if can(orgId, 'classes.read', cid(resource.data)) || can(orgId, 'campus.read', cid(resource.data)) || isActiveMember(orgId) && mem(orgId).kind == 'parent';
+        allow write: if false;
+      }
+      match /categories/{id} {
+        allow read: if can(orgId, 'campus.read', cid(resource.data)) || can(orgId, 'classes.read', cid(resource.data)) || isActiveMember(orgId) && mem(orgId).kind == 'parent';
+        allow write: if false;
+      }
+      match /classes/{id} {
+        allow read: if can(orgId, 'classes.read', cid(resource.data)) || can(orgId, 'campus.read', cid(resource.data)) || isActiveMember(orgId) && mem(orgId).kind == 'parent';
+        allow write: if false;
+      }
+
+      // ---- trẻ
+      match /children/{childId} {
+        allow read: if can(orgId, 'children.read', cid(resource.data)) || parentOf(orgId, childId);
+        allow write: if false;
+
+        match /private/{doc} {
+          allow read: if can(orgId, 'children.health.read', cid(resource.data)) || can(orgId, 'medication.read', cid(resource.data)) || parentOf(orgId, childId);
+          allow write: if false;
+        }
+      }
+      match /guardianLinks/{id} {
+        allow read: if can(orgId, 'children.read', cid(resource.data)) || (signedIn() && resource.data.get('uid', '') == request.auth.uid);
+        allow write: if false;
+      }
+      match /pickupAuthorizations/{id} {
+        allow read: if can(orgId, 'children.read', cid(resource.data)) || can(orgId, 'handover.write', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /enrollments/{id} {
+        allow read: if can(orgId, 'children.read', cid(resource.data)) || can(orgId, 'classes.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /assignments/{id} {
+        allow read: if can(orgId, 'classes.read', cid(resource.data)) || (signedIn() && resource.data.get('uid', '') == request.auth.uid);
+        allow write: if false;
+      }
+      match /transfers/{id} {
+        allow read: if can(orgId, 'children.read', cid(resource.data)) || can(orgId, 'children.transfer', cid(resource.data));
+        allow write: if false;
+      }
+      match /childStatusHistory/{id} {
+        allow read: if can(orgId, 'children.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /leads/{id} {
+        allow read: if can(orgId, 'leads.read', cid(resource.data));
+        allow write: if false;
+      }
+
+      // ---- điểm danh / bàn giao
+      match /attendance/{id} {
+        allow read: if can(orgId, 'attendance.read', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /attendanceClosures/{id} {
+        allow read: if can(orgId, 'attendance.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /attendanceCorrections/{id} {
+        allow read: if can(orgId, 'attendance.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /handovers/{id} {
+        allow read: if can(orgId, 'attendance.read', cid(resource.data)) || can(orgId, 'handover.write', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /leaveRequests/{id} {
+        allow read: if can(orgId, 'attendance.read', cid(resource.data)) || can(orgId, 'leave.decide', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+
+      // ---- chăm sóc / sức khỏe / sự cố
+      match /dailyLogs/{id} {
+        allow read: if can(orgId, 'care.read', cid(resource.data))
+          || (parentOf(orgId, resource.data.childId) && resource.data.status == 'published');
+        allow write: if false;
+      }
+      match /healthRecords/{id} {
+        allow read: if can(orgId, 'medication.read', cid(resource.data)) || can(orgId, 'children.health.read', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /medicationRequests/{id} {
+        allow read: if can(orgId, 'medication.read', cid(resource.data)) || can(orgId, 'children.health.read', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /medicationAdmins/{id} {
+        allow read: if can(orgId, 'medication.read', cid(resource.data)) || can(orgId, 'children.health.read', cid(resource.data)) || parentOf(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /incidents/{id} {
+        allow read: if (can(orgId, 'incident.read', cid(resource.data))
+            && (resource.data.get('restricted', true) == false
+                || request.auth.uid in resource.data.get('viewerUids', [])
+                || can(orgId, 'children.write', cid(resource.data))))
+          || (resource.data.get('shareWithParent', false) == true && parentOf(orgId, resource.data.get('childId', '')));
+        allow write: if false;
+      }
+
+      // ---- nhân sự / công / lương
+      match /employees/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') == id);
+        allow write: if false;
+      }
+      match /contracts/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /shifts/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data)) || can(orgId, 'timekeeping.read', cid(resource.data)) || can(orgId, 'roster.write', cid(resource.data));
+        allow write: if false;
+      }
+      match /rosters/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data)) || can(orgId, 'roster.write', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /punches/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && (resource.data.get('uid', '') == request.auth.uid
+              || (mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''))));
+        allow write: if false;
+      }
+      match /timesheets/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /punchAdjustments/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && (resource.data.get('uid', '') == request.auth.uid
+              || (mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''))));
+        allow write: if false;
+      }
+      match /staffLeaves/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data)) || can(orgId, 'leave_staff.decide', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && (resource.data.get('uid', '') == request.auth.uid
+              || (mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''))));
+        allow write: if false;
+      }
+      match /shiftSwaps/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data)) || can(orgId, 'leave_staff.decide', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != ''
+              && (resource.data.get('employeeId', '') == mem(orgId).get('employeeId', '') || resource.data.get('toEmployeeId', '') == mem(orgId).get('employeeId', '')));
+        allow write: if false;
+      }
+      match /overtimes/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /payrollRuns/{id} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+        match /payslips/{sid} {
+          allow read: if can(orgId, 'payroll.read', cid(resource.data))
+            || (signedIn() && resource.data.get('employeeUid', '') == request.auth.uid);
+          allow write: if false;
+        }
+      }
+      match /payslips/{id} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data))
+          || (signedIn() && resource.data.get('employeeUid', '') == request.auth.uid);
+        allow write: if false;
+      }
+      match /salaryComponents/{id} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+      }
+
+      // ---- học phí / thu tiền
+      match /feePolicies/{id} {
+        allow read: if can(orgId, 'fees.read', cid(resource.data))
+          || (isActiveMember(orgId) && mem(orgId).kind == 'parent' && resource.data.get('status', '') == 'published');
+        allow write: if false;
+      }
+      match /billingRuns/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || can(orgId, 'fees.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /receivables/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || parentFees(orgId, resource.data.childId);
+        allow write: if false;
+      }
+      match /payments/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || parentFees(orgId, resource.data.get('childId', ''));
+        allow write: if false;
+      }
+      match /allocations/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /credits/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || parentFees(orgId, resource.data.get('childId', ''));
+        allow write: if false;
+      }
+      match /refunds/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || can(orgId, 'refunds.approve', cid(resource.data));
+        allow write: if false;
+      }
+      match /deposits/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || parentFees(orgId, resource.data.get('childId', ''));
+        allow write: if false;
+      }
+      match /depositMovements/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /paymentProofs/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || parentFees(orgId, resource.data.get('childId', ''));
+        allow write: if false;
+      }
+      match /bankTransactions/{id} {
+        allow read: if can(orgId, 'payments.reconcile', cid(resource.data)) || can(orgId, 'payments.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /expenses/{id} {
+        allow read: if can(orgId, 'expenses.read', cid(resource.data));
+        allow write: if false;
+      }
+
+      // ---- bếp / kho / tài sản / xe
+      match /menus/{id} {
+        allow read: if can(orgId, 'kitchen.read', cid(resource.data))
+          || (isActiveMember(orgId) && mem(orgId).kind == 'parent' && resource.data.get('status', '') == 'published');
+        allow write: if false;
+      }
+      match /mealOrders/{id} {
+        allow read: if can(orgId, 'kitchen.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /stockItems/{id} {
+        allow read: if can(orgId, 'stock.read', cid(resource.data)) || can(orgId, 'kitchen.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /stockLots/{id} {
+        allow read: if can(orgId, 'stock.read', cid(resource.data)) || can(orgId, 'kitchen.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /stockMovements/{id} {
+        allow read: if can(orgId, 'stock.read', cid(resource.data)) || can(orgId, 'kitchen.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /assets/{id} {
+        allow read: if can(orgId, 'assets.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /assetRequests/{id} {
+        allow read: if can(orgId, 'assets.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /routes/{id} {
+        allow read: if can(orgId, 'transport.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /trips/{id} {
+        allow read: if can(orgId, 'transport.read', cid(resource.data))
+          || (isActiveMember(orgId) && mem(orgId).kind == 'parent' && resource.data.get('childIds', []).hasAny(mem(orgId).childIds));
+        allow write: if false;
+      }
+
+      // ---- thông báo / trao đổi
+      match /notifications/{id} {
+        allow read: if can(orgId, 'notify.read', cid(resource.data))
+          || (signedIn() && exists(/databases/$(database)/documents/orgs/$(orgId)/notificationReceipts/$(id + '_' + request.auth.uid)));
+        allow write: if false;
+      }
+      match /notificationReceipts/{id} {
+        allow read: if signedIn() && (resource.data.get('uid', '') == request.auth.uid || can(orgId, 'notify.read', cid(resource.data)));
+        allow write: if false;
+      }
+      match /threads/{threadId} {
+        allow read: if can(orgId, 'inbox.handle', cid(resource.data))
+          || (signedIn() && request.auth.uid in resource.data.get('participants', []));
+        allow write: if false;
+        match /messages/{mid} {
+          function thread() { return get(/databases/$(database)/documents/orgs/$(orgId)/threads/$(threadId)).data; }
+          allow read: if can(orgId, 'inbox.handle', cid(thread()))
+            || (signedIn() && request.auth.uid in thread().get('participants', []));
+          allow write: if false;
+        }
+      }
+
+      // ---- phê duyệt / nhật ký / hệ thống
+      match /approvals/{id} {
+        allow read: if signedIn() && (resource.data.get('requestedBy', '') == request.auth.uid
+          || (can(orgId, 'approvals.read', cid(resource.data)) && can(orgId, resource.data.get('requiredPerm', ''), cid(resource.data))));
+        allow write: if false;
+      }
+      match /auditLogs/{id} {
+        allow read: if can(orgId, 'audit.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /importJobs/{id} {
+        allow read: if canAny(orgId, 'import.write');
+        allow write: if false;
+      }
+      match /backups/{id} {
+        allow read: if canAny(orgId, 'backup.manage');
+        allow write: if false;
+      }
+      // ---- BE-2 bổ sung: nhân sự / công / lương
+      match /staffAssignments/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /rosterEntries/{id} {
+        allow read: if can(orgId, 'staff.read', cid(resource.data)) || can(orgId, 'roster.write', cid(resource.data)) || can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /overtimeRequests/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /timesheetDays/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /timesheetAdjustments/{id} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data))
+          || (signedIn() && isActive(mem(orgId)) && mem(orgId).get('employeeId', '') != '' && resource.data.get('employeeId', '') == mem(orgId).get('employeeId', ''));
+        allow write: if false;
+      }
+      match /timesheets/{id}/snapshots/{sid} {
+        allow read: if can(orgId, 'timekeeping.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /salaries/{id} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /employees/{id}/private/{doc} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /payrollRuns/{id}/items/{iid} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /payrollRuns/{id}/payments/{pid} {
+        allow read: if can(orgId, 'payroll.read', cid(resource.data));
+        allow write: if false;
+      }
+
+      // ---- BE-2 bổ sung: tài chính
+      match /receivableAdjustments/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /cashLedger/{id} {
+        allow read: if can(orgId, 'payments.read', cid(resource.data)) || can(orgId, 'expenses.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /fundReconciliations/{id} {
+        allow read: if can(orgId, 'payments.reconcile', cid(resource.data)) || can(orgId, 'expenses.read', cid(resource.data));
+        allow write: if false;
+      }
+
+      // ---- BE-2 bổ sung: bếp / kho / tài sản / xe
+      match /mealLocks/{id} {
+        allow read: if can(orgId, 'kitchen.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /stocktakes/{id} {
+        allow read: if can(orgId, 'stock.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /stockTransfers/{id} {
+        allow read: if can(orgId, 'stock.read', cid(resource.data)) || can(orgId, 'stock.read', resource.data.get('toCampusId', null));
+        allow write: if false;
+      }
+      match /trips/{id}/riders/{rid} {
+        allow read: if can(orgId, 'transport.read', cid(resource.data))
+          || (isActiveMember(orgId) && mem(orgId).kind == 'parent' && resource.data.get('childId', '') in mem(orgId).childIds);
+        allow write: if false;
+      }
+      match /trips/{id}/events/{eid} {
+        allow read: if can(orgId, 'transport.read', cid(resource.data))
+          || (isActiveMember(orgId) && mem(orgId).kind == 'parent' && resource.data.get('childId', '') in mem(orgId).childIds);
+        allow write: if false;
+      }
+      match /assets/{id}/history/{hid} {
+        allow read: if can(orgId, 'assets.read', cid(resource.data));
+        allow write: if false;
+      }
+      match /alerts/{id} {
+        allow read: if can(orgId, resource.data.get('recipientPerm', 'reports.read'), cid(resource.data));
+        allow write: if false;
+      }
+
+      // ops (idempotency), counters, childCodes ... : chỉ server.
+      match /{other=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+/* App shell: sidebar + topbar + content. Desktop >= 1024; thu gọn thành ngăn kéo ở màn nhỏ. */
+.shell { min-height: 100vh; display: grid; grid-template-columns: var(--size-sidebar) minmax(0, 1fr); }
+.sidebar { background: var(--color-surface); border-right: 1px solid var(--color-borderSubtle); position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+.sidebar-brand { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-4); min-height: var(--size-topbar); font-weight: 700; font-size: var(--fs-title); color: var(--color-action); border-bottom: 1px solid var(--color-divider); }
+.brand-mark { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-action); color: var(--color-textOnAction); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+.nav { padding: var(--space-3) var(--space-3) var(--space-6); display: flex; flex-direction: column; gap: var(--space-1); }
+.nav-group-title { margin: var(--space-4) var(--space-3) var(--space-1); font-size: var(--fs-caption); line-height: var(--lh-caption); font-weight: 600; color: var(--color-textTertiary); }
+.nav-link { display: flex; align-items: center; min-height: var(--size-touch-min); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); color: var(--color-textSecondary); text-decoration: none; font-size: var(--fs-small); line-height: var(--lh-small); font-weight: 600; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; }
+.nav-link:hover { background: var(--color-surfaceMuted); color: var(--color-textPrimary); }
+.nav-link[aria-current="page"] { background: var(--color-brandSoft); color: var(--color-action); }
+.nav-empty { padding: var(--space-4); color: var(--color-textSecondary); font-size: var(--fs-small); }
+
+.main-col { min-width: 0; display: flex; flex-direction: column; }
+.topbar { position: sticky; top: 0; z-index: 40; background: var(--color-surface); border-bottom: 1px solid var(--color-borderSubtle); min-height: var(--size-topbar); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-6); flex-wrap: wrap; }
+.topbar-spacer { flex: 1; }
+.topbar .control { min-height: var(--size-touch-min); width: auto; max-width: 220px; font-size: var(--fs-small); padding-top: 0; padding-bottom: 0; }
+.topbar-org { font-weight: 700; font-size: var(--fs-title); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-menu-btn { display: none; }
+.content { padding: var(--space-6); width: 100%; max-width: 1440px; margin: 0 auto; }
+.user-btn { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--size-touch-min); padding: 0 var(--space-2); background: none; border: 0; border-radius: var(--radius-md); cursor: pointer; color: var(--color-textPrimary); font-weight: 600; font-size: var(--fs-small); }
+.user-btn:hover { background: var(--color-surfaceMuted); }
+.popover { position: absolute; right: 0; top: calc(100% + var(--space-2)); background: var(--color-surfaceRaised); border: 1px solid var(--color-borderSubtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-floating); min-width: 280px; padding: var(--space-4); z-index: 60; display: flex; flex-direction: column; gap: var(--space-3); }
+.popover-wrap { position: relative; }
+.scrim { display: none; }
+
+@media (max-width: 1023px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(var(--size-sidebar), 86vw); z-index: 90; transform: translateX(-100%); transition: transform var(--motion-sheet) ease-out; box-shadow: var(--shadow-modal); }
+  .sidebar[data-open="true"] { transform: none; }
+  .scrim { display: block; position: fixed; inset: 0; background: var(--color-overlay); z-index: 80; }
+  .topbar-menu-btn { display: inline-flex; }
+  .topbar { padding: var(--space-2) var(--space-4); }
+  .content { padding: var(--space-4); }
+}
+@media (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
+
+/* Trang đăng nhập / toàn màn hình */
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-6) var(--space-4); }
+.auth-card { width: 100%; max-width: 440px; background: var(--color-surface); border: 1px solid var(--color-borderSubtle); border-radius: var(--radius-xl); padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-5); box-shadow: var(--shadow-floating); }
+.fullscreen-msg { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: var(--space-6); }
+@media (max-width: 640px) { .hide-sm { display: none; } .topbar .control { max-width: 150px; } }

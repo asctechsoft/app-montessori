@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1050042480674",
+    "project_id": "app-montessori-36ec6",
+    "storage_bucket": "app-montessori-36ec6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1050042480674:android:97857f3b90f2c65304f27b",
+        "android_client_info": {
+          "package_name": "com.asc.app_montessori"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1050042480674-7h8v1de7nqs35f86bgg68ga2lvlqqne1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6qbjt9UcVoLTLbPilblUpv2rrO8ksHIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1050042480674-7h8v1de7nqs35f86bgg68ga2lvlqqne1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

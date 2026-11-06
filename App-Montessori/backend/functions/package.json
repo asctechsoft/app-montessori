@@ -1,0 +1,26 @@
+{
+  "name": "montessori-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "node --test lib/__tests__",
+    "lint": "tsc --noEmit",
+    "seed": "tsc -p ../scripts/tsconfig.json && node .seed-build/scripts/seed.js",
+    "test:emulator": "firebase emulators:exec --only firestore,auth --project app-montessori-36ec6 \"npm run build && npm test\" --config ../firebase.json"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@types/node": "^20.14.0",
+    "firebase": "^12.19.0",
+    "typescript": "^5.6.0"
+  }
+}

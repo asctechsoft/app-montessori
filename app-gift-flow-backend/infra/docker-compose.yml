@@ -1,0 +1,52 @@
+name: giftflow
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: giftflow
+      POSTGRES_USER: giftflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]          # KHÔNG publish cổng 5432 ra ngoài
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U giftflow"]
+      interval: 10s
+      retries: 5
+    deploy: { resources: { limits: { memory: 512M } } }
+
+  api:
+    build: { context: .., dockerfile: Dockerfile }
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+      DB_TYPE: postgres
+      DATABASE_URL: postgres://giftflow:${POSTGRES_PASSWORD}@postgres:5432/giftflow
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - exports:/app/exports
+    networks: [internal, web]
+    deploy: { resources: { limits: { memory: 512M } } }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [api]
+    networks: [web]
+
+networks:
+  internal: { internal: true }
+  web: {}
+volumes:
+  pgdata:
+  exports:
+  caddy_data:

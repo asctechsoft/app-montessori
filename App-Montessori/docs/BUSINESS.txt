@@ -1,0 +1,659 @@
+
+Đặc tả nghiệp vụ quản lý trường mầm non nhiều cơ sở
+Định hướng sản phẩm và yêu cầu cho ứng dụng di động cùng web quản trị
+Phiên bản 1.1 • Cập nhật ngày 05 tháng 11 năm 2026
+Mục tiêu của hệ thống
+Xây dựng một hệ thống để chủ trường quản lý toàn bộ chuỗi trường mầm non tư thục, đồng thời giao quyền vận hành độc lập cho từng cơ sở. Dữ liệu trẻ, lớp, nhân sự, công, học phí và chăm sóc hằng ngày được liên kết để giảm nhập lại và có thể đối chiếu khi xảy ra sai lệch.
+Thiết kế đề xuất gồm web quản trị cho chủ trường và nhân sự văn phòng; ứng dụng giáo viên và nhân viên; ứng dụng phụ huynh. Trẻ có hồ sơ riêng, còn người giám hộ dùng tài khoản để xem và thực hiện các yêu cầu liên quan đến trẻ.
+Phạm vi dùng để duyệt sản phẩm
+Tài liệu mô tả mô hình tổ chức, phân quyền, chức năng, quy trình, quy tắc tính toán, màn hình và tiêu chí nghiệm thu. Các chính sách như hoàn tiền ăn, đi muộn, nghỉ phép và giảm học phí được trình bày dưới dạng cấu hình đề xuất để chủ trường lựa chọn trước khi lập trình.
+Giả định triển khai ban đầu tại Việt Nam, sử dụng tiếng Việt, tiền VND và giờ địa phương của cơ sở. Đây là thiết kế nghiệp vụ sản phẩm; các biểu mẫu pháp lý, nghĩa vụ kế toán và chính sách lao động cần được đơn vị vận hành xác nhận riêng trước khi đưa vào sử dụng.
+Các quyết định thiết kế chính
+Một chủ hệ thống có nhiều cơ sở; mỗi cơ sở có hiệu trưởng và nhóm nhân sự được phân quyền riêng.
+Mỗi người có tài khoản cá nhân; một người có thể được cấp quyền tại nhiều cơ sở.
+Điểm danh trẻ và chấm công nhân viên là hai nghiệp vụ độc lập.
+Khoản thu, khoản hoàn, sửa điểm danh và sửa công đều có lịch sử và người chịu trách nhiệm.
+Cách đọc tài liệu
+Đọc trang 2 đến 4 để nắm mô hình; trang 5 đến 13 để duyệt nghiệp vụ; trang 14 đến 19 để định hướng triển khai app, web và kiểm thử. Xem mục 19 đến 28 để triển khai theo bốn vai trò, đối chiếu dữ liệu và nghiệm thu.
+
+1 Mô hình tổ chức và tài khoản
+Cấu trúc quản lý
+Tổ chức sở hữu hoặc chuỗi trường → cơ sở → năm học → khối tuổi → lớp → hồ sơ trẻ. Nhân sự thuộc tổ chức và có các đợt phân công về cơ sở, lớp, chức danh theo ngày hiệu lực. Phụ huynh được liên kết với trẻ bằng quan hệ giám hộ.
+Nếu phát triển thành phần mềm bán cho nhiều chủ trường, mỗi khách hàng là một tổ chức độc lập. Cơ sở thuộc một tổ chức; dữ liệu của các tổ chức phải được cách ly ngay từ thiết kế. Phiên bản dùng cho một chuỗi vẫn nên giữ cấu trúc này để mở rộng sau.
+Cách hiểu mỗi cơ sở có tài khoản riêng
+Khi mở cơ sở, chủ hệ thống tạo cơ sở và mời tài khoản hiệu trưởng của cơ sở đó. Hiệu trưởng tạo hoặc mời nhân sự trong phạm vi được giao. Giáo viên, kế toán và phụ huynh đăng nhập bằng tài khoản riêng; không chia sẻ mật khẩu cơ sở. Hệ thống ghi nhận chính xác ai đã thu tiền, sửa công hoặc xác nhận trả trẻ.
+Một hiệu trưởng có thể quản lý hai cơ sở nếu được cấp quyền; giao diện bắt buộc hiển thị cơ sở đang thao tác.
+Giáo viên dạy thay có quyền lớp trong thời gian phân công; hết hạn thì quyền nhập mới tự kết thúc.
+Một phụ huynh có thể có nhiều con, kể cả ở nhiều cơ sở; chuyển con để xem, không tự mở quyền xem lớp khác.
+Trẻ không cần tài khoản đăng nhập ở bản đầu. Mã hồ sơ trẻ dùng để quản lý và không phải mật khẩu.
+Vòng đời tài khoản
+Mời → xác minh số điện thoại hoặc email → kích hoạt → gán vai trò và phạm vi → sử dụng → tạm khóa hoặc thu hồi. Khi nhân viên nghỉ việc, thu hồi phiên đăng nhập và quyền truy cập nhưng giữ hồ sơ nhân sự, bảng công và lịch sử thao tác.
+Tài khoản có nhiều vai trò được chuyển vai trò trong giao diện. Quyền nhạy cảm như duyệt hoàn tiền, xem lương, sửa công đã khóa phải cấp riêng; chức danh hiệu trưởng không mặc nhiên có mọi quyền tài chính.
+Ví dụ vận hành
+Chủ chuỗi quản lý cơ sở A và B. Cô Lan chỉ xem lớp Mầm 1 tại A; cô Hương là hiệu trưởng A; kế toán Minh phụ trách cả A và B. Mẹ bé An chỉ xem hồ sơ bé An và bé Bình đã được liên kết, không xem công hoặc lương của giáo viên.
+
+2 Vai trò và phạm vi truy cập
+Vai trò
+ | Phạm vi mặc định
+ | Quyền nghiệp vụ chính
+ | Chủ chuỗi
+ | Toàn tổ chức
+ | Quản lý cơ sở; phân quyền; xem báo cáo; duyệt chính sách và các khoản theo thẩm quyền.
+ | Hiệu trưởng
+ | Cơ sở được giao
+ | Lớp và trẻ; lịch làm việc; duyệt nghỉ; kiểm tra chăm sóc; báo cáo cơ sở.
+ | Giáo viên
+ | Lớp được phân công
+ | Nhận và trả trẻ; nhật ký; hoạt động; xin nghỉ; xem công của mình.
+ | Nhân sự
+ | Cơ sở được giao
+ | Hồ sơ nhân viên; ca; phép; tổng hợp công; chuẩn bị bảng lương.
+ | Kế toán hoặc thu ngân
+ | Cơ sở được giao
+ | Lập khoản phải thu; nhận tiền; đối soát; công nợ; thu chi theo quyền.
+ | Y tế
+ | Cơ sở được giao
+ | Hồ sơ sức khỏe được phép; thuốc; tăng trưởng; sự cố sức khỏe.
+ | Bếp và kho
+ | Cơ sở được giao
+ | Suất ăn; thực đơn; nhập xuất thực phẩm; không xem lương và học phí.
+ | Phụ huynh
+ | Các con được liên kết
+ | Xin nghỉ; xem nhật ký; học phí; xác nhận người đón; trao đổi.
+ | Quản trị kỹ thuật
+ | Theo nhiệm vụ hỗ trợ
+ | Quản lý kỹ thuật; không mặc định được đọc ảnh trẻ, hồ sơ sức khỏe hoặc lương.
+ | 
+Quy tắc kiểm tra quyền
+Mỗi yêu cầu phải kiểm tra đồng thời tổ chức, cơ sở, vai trò, lớp hoặc trẻ liên quan và thời gian hiệu lực. Kiểm tra tại máy chủ cho cả danh sách, chi tiết, tải file, xuất Excel và thao tác hàng loạt; ẩn nút trên giao diện không đủ để bảo vệ dữ liệu.
+Mặc định từ chối nếu chưa được cấp quyền. Chuyển cơ sở trên giao diện không làm thay đổi quyền thực tế. Tệp và ảnh cần liên kết tải có thời hạn, kiểm tra người xem; không đặt hồ sơ trẻ ở đường dẫn công khai.
+Phân tách người lập và người duyệt
+Đề xuất áp dụng cho hoàn tiền, hủy phiếu thu, điều chỉnh công và mở lại kỳ đã chốt. Cơ sở nhỏ có thể cho chủ trường xử lý trực tiếp nhưng vẫn phải ghi lý do và nhật ký. Không xóa chứng từ đã phát sinh giao dịch.
+
+3 Danh mục và khởi tạo cơ sở
+Thông tin phải thiết lập trước khi vận hành
+Nhóm cấu hình
+ | Dữ liệu và quy tắc
+ | Tổ chức và cơ sở
+ | Mã, tên, địa chỉ, liên hệ, người phụ trách, múi giờ, trạng thái hoạt động; tài khoản nhận tiền theo cơ sở.
+ | Năm học và lớp
+ | Ngày bắt đầu và kết thúc, khối tuổi, phòng, sĩ số cấu hình, giáo viên chính và phụ; lịch học theo ngày.
+ | Lịch vận hành
+ | Ngày học, ngày nghỉ, ngày lễ, giờ nhận và trả, ca ngoài giờ; có ngoại lệ theo ngày.
+ | Khoản thu
+ | Học phí, tiền ăn, giữ muộn, xe đưa đón, ngoại khóa, phí đầu năm, đặt cọc; chu kỳ và thời điểm áp dụng.
+ | Nhân sự
+ | Chức danh, loại hợp đồng, ca, phép, ngày công chuẩn, quy tắc đi muộn; thẩm quyền duyệt.
+ | Danh mục khác
+ | Nhóm thực phẩm, đơn vị tính, thuốc, tài sản, loại sự cố, mẫu thông báo và lý do nghỉ.
+ | 
+Luồng mở cơ sở
+Chủ hệ thống tạo cơ sở → mời hiệu trưởng → cấu hình lịch, lớp và học phí → nhập danh sách nhân sự và trẻ → liên kết phụ huynh → kiểm tra dữ liệu → kích hoạt vận hành. Cần có bảng tiến độ thiết lập để nhận biết mục nào còn thiếu.
+Có thể sao chép cấu hình từ cơ sở khác nhưng phải chọn rõ danh mục nào được sao chép. Không sao chép hồ sơ trẻ, tài khoản nhận tiền hoặc chứng từ. Giá mới cần ngày hiệu lực; dữ liệu lịch sử giữ chính sách đã dùng tại thời điểm phát sinh.
+Nhập dữ liệu ban đầu
+Cho tải mẫu Excel, kiểm tra trước khi nhập và xuất danh sách dòng lỗi. Phân biệt mã trẻ với số điện thoại phụ huynh; một số điện thoại có thể gắn nhiều trẻ. Nhập trùng mã hoặc hồ sơ nghi trùng phải được xử lý có xác nhận, không tự ghép chỉ vì trùng tên.
+Đóng hoặc tạm ngừng cơ sở
+Tạm ngừng nhận hồ sơ mới nhưng vẫn cho xử lý công nợ và xem lịch sử theo quyền. Khi đóng cơ sở, phải xử lý trẻ đang học, phân công nhân sự, tiền đặt cọc và công nợ còn lại. Không xóa cơ sở đã có dữ liệu.
+
+4 Tuyển sinh và quản lý hồ sơ trẻ
+Luồng tuyển sinh
+Tiếp nhận nhu cầu → tư vấn → đặt lịch tham quan hoặc học thử → thu thập hồ sơ → chọn cơ sở và lớp → duyệt nhập học → áp dụng biểu phí → mời phụ huynh. Trạng thái khách quan tâm được tách khỏi trạng thái trẻ đã nhập học để không làm sai sĩ số.
+Hồ sơ trẻ
+Mã trẻ, họ tên, ngày sinh, giới tính nếu cần, ảnh, ngày nhập học, lớp và thời gian theo học.
+Người giám hộ, quan hệ, số liên hệ khẩn cấp; quyền nhận thông báo, xem tài chính và đón trẻ được cấp riêng.
+Dị ứng, chế độ ăn, bệnh sử hoặc lưu ý chăm sóc; tài liệu sức khỏe chỉ người có nhiệm vụ được xem.
+Gói học, khoản thu áp dụng, giảm trừ, đặt cọc, dịch vụ đăng ký; có ngày hiệu lực và người duyệt.
+Giấy tờ và các chấp thuận sử dụng ảnh, trao đổi thông tin hoặc dịch vụ; lưu phiên bản và thời điểm xác nhận.
+Trạng thái hồ sơ
+Chờ nhập học → đang học → tạm nghỉ hoặc bảo lưu → quay lại hoặc thôi học → lưu trữ. Học thử là trạng thái riêng có thời hạn. Mỗi chuyển trạng thái có ngày hiệu lực; số liệu báo cáo phải xem được theo ngày quá khứ.
+Chuyển lớp và chuyển cơ sở
+Người quản lý tạo yêu cầu, chọn nơi đến và ngày hiệu lực → kiểm tra sĩ số → bên có quyền duyệt → kết thúc phân lớp cũ và mở phân lớp mới. Giữ nguyên danh tính trẻ trong cùng tổ chức; giữ nguyên lịch sử học phí, điểm danh và sức khỏe theo nơi phát sinh.
+Chuyển cơ sở không tự chuyển toàn bộ công nợ. Phải chọn công nợ do cơ sở cũ tiếp tục thu hay chuyển theo biên bản; tiền đặt cọc phải có giao dịch điều chuyển. Giáo viên cũ mất quyền nhập mới sau ngày chuyển; quyền đọc lịch sử theo nhiệm vụ được cấu hình.
+Ngoại lệ cần xử lý
+Thiếu giấy tờ: cho nhập tạm kèm danh sách cần bổ sung. Trẻ cùng tên: nhận diện bằng mã và ngày sinh. Phụ huynh đổi số điện thoại: xác minh lại trước khi chuyển liên kết. Thay đổi người giám hộ: người có thẩm quyền duyệt và thu hồi quyền của người cũ theo hồ sơ được xác nhận.
+
+5 Điểm danh và an toàn đón trả trẻ
+Phân biệt điểm danh và bàn giao
+Điểm danh ghi trẻ có đi học hay không; bàn giao ghi trẻ hiện đang do ai chăm sóc và đã được trả cho ai. Hai dữ liệu liên quan nhưng không thay thế nhau. Trẻ có đơn xin nghỉ vẫn không được xem là đã xác nhận vắng nếu chưa đối chiếu ngày thực tế.
+Luồng nhận trẻ buổi sáng
+Giáo viên chọn đúng cơ sở, lớp và ngày → mở danh sách trẻ → xác nhận có mặt từng trẻ → ghi giờ nhận, người đưa và lưu ý sức khỏe → gửi thông báo đến phụ huynh. Giao diện làm nổi bật dị ứng hoặc lưu ý chăm sóc có liên quan. Thao tác hàng loạt phải xem lại danh sách trước khi xác nhận.
+Luồng trả trẻ
+Giáo viên mở hồ sơ bàn giao → kiểm tra người đón có trong danh sách được phép và còn hiệu lực → xác minh theo quy trình cơ sở → ghi giờ trả, người nhận và người xác nhận → gửi thông báo. Mã QR hoặc mã dùng một lần chỉ là một bước hỗ trợ, không đủ để tự kết luận người đó được phép đón.
+Người đón thay: phụ huynh tạo ủy quyền có thời hạn, phạm vi trẻ và thông tin nhận diện → nhà trường xác nhận theo chính sách → giáo viên kiểm tra tại thời điểm trả. Khi có nghi ngờ hoặc người đón không được phép, giữ trạng thái chưa bàn giao và liên hệ người có thẩm quyền.
+Trạng thái và sửa sai
+Theo ngày: chưa xác nhận, có mặt, nghỉ có phép, nghỉ không phép, ngày không học.
+Theo bàn giao: chưa nhận, đã nhận, đã trả; ra ngoài tạm thời cần bản ghi riêng nếu cơ sở hỗ trợ.
+Không cho trả trẻ chưa được nhận; nếu quên nhận phải bổ sung có lý do trước khi trả.
+Sửa giờ hoặc đổi trạng thái sau chốt cần yêu cầu điều chỉnh; lưu giá trị trước và sau, người duyệt.
+Mất mạng và báo cáo cuối ngày
+Cho lưu thao tác chờ đồng bộ với thời gian thiết bị và mã thao tác; hiển thị rõ chưa gửi thành công. Hai giáo viên cập nhật cùng trẻ phải phát hiện trùng hoặc xung đột. Nếu cần đối chiếu trạng thái hiện tại trước khi trả trẻ mà không có kết nối, dùng quy trình bàn giao dự phòng và bổ sung sau, không tự xác nhận đã đồng bộ.
+Cuối ngày hiển thị trẻ còn ở trường, trẻ chưa rõ trạng thái và số trẻ thực tế trong lớp. Chưa trả hết trẻ phải cảnh báo đến người trực được phân công.
+
+6 Chăm sóc trẻ và kết nối phụ huynh
+Nhật ký hằng ngày
+Giáo viên ghi bữa ăn và mức ăn, giấc ngủ, vệ sinh, tâm trạng, hoạt động học, ảnh và nhận xét. Dùng mẫu chung của lớp để nhập nhanh nhưng phải cho sửa riêng từng bé. Bản nháp chưa hiển thị cho phụ huynh; khi xuất bản cần kiểm tra đúng trẻ và đúng ngày.
+Sức khỏe và thuốc
+Theo dõi chiều cao, cân nặng, ngày đo, người đo và ghi chú. Nếu có biểu đồ tăng trưởng, cần chọn chuẩn, độ tuổi và cách diễn giải phù hợp ở giai đoạn đặc tả chi tiết; không mặc định coi biểu đồ là kết luận sức khỏe.
+Phụ huynh gửi yêu cầu dùng thuốc gồm tên, liều theo hướng dẫn được cung cấp, thời điểm, thời hạn và tệp đính kèm → nhân sự được phân quyền xác nhận nhận thuốc → từng lần dùng ghi người thực hiện, giờ thực tế, liều và kết quả. Yêu cầu chưa đủ thông tin không được tự suy đoán liều. Tạm dừng hoặc từ chối phải có lý do và thông báo.
+Sự cố trong ngày
+Tạo sự cố có trẻ liên quan, thời gian, diễn biến, người ghi, xử lý ban đầu, người đã được liên hệ và kết quả. Tình huống khẩn cấp phải theo quy trình liên hệ trực tiếp của trường, không chỉ chờ thông báo trong app. Hồ sơ sự cố giới hạn người xem và không được đưa vào album lớp.
+Xin nghỉ và dặn dò
+Phụ huynh chọn con, ngày hoặc khoảng ngày, buổi nghỉ và lý do → giáo viên hoặc quản lý nhận → duyệt theo chính sách. Đơn ghi nhận cả thời điểm gửi và thời điểm duyệt; tính tiền ăn dựa trên quy tắc chốt suất ăn, không chỉ dựa vào trạng thái đơn.
+Thông báo và trao đổi
+Thông báo có phạm vi toàn chuỗi, cơ sở, lớp hoặc cá nhân; có lịch gửi và trạng thái gửi, đã xem, xác nhận nếu cần. Tin nhắn gắn với lớp hoặc trẻ; khi giáo viên chuyển lớp, quyền truy cập hội thoại phải thay đổi theo nhiệm vụ.
+Ảnh hoạt động chỉ hiển thị cho phạm vi được phép và phù hợp lựa chọn sử dụng ảnh đã ghi nhận. Phụ huynh không nhận danh sách số điện thoại hoặc thông tin riêng của gia đình khác. Tin đẩy trên màn hình khóa nên tránh nội dung sức khỏe và công nợ chi tiết.
+
+7 Nhân sự và phân hệ chấm công
+Hồ sơ và phân công
+Lưu mã nhân viên, thông tin liên hệ, chức danh, ngày vào và nghỉ việc, hợp đồng, nơi làm, lớp phụ trách, ca và cấu hình phép. Lương và tài khoản ngân hàng chỉ nhân sự hoặc kế toán được cấp quyền xem. Một nhân viên có thể làm nhiều cơ sở nhưng lịch ca không được trùng thời gian.
+Luồng chấm công hằng ngày
+Quản lý xếp ca → nhân viên xem ca → ghi vào và ra → hệ thống ghép công theo ca → phát hiện thiếu lượt, đi muộn hoặc về sớm → nhân viên gửi giải trình → người có quyền duyệt → tổng hợp công → xác nhận và khóa kỳ.
+Bản đầu đề xuất chấm bằng app có vị trí và phạm vi cơ sở, lưu độ chính xác vị trí và thời gian máy chủ. Không coi GPS là bằng chứng tuyệt đối; trường hợp mất định vị có quy trình xác nhận thủ công. Có thể tích hợp máy chấm công sau khi chốt loại thiết bị và cách đối soát.
+Dữ liệu mỗi lượt chấm
+Nhân viên, cơ sở thực tế, ca dự kiến, loại vào hoặc ra, thời điểm thiết bị và máy chủ, nguồn chấm, vị trí nếu có, kết quả kiểm tra và trạng thái đồng bộ. Lượt gốc được giữ nguyên; điều chỉnh được lưu riêng, không ghi đè dấu vết.
+Quy tắc tính công đề xuất
+Ca có giờ bắt đầu, kết thúc, nghỉ giữa ca, ngưỡng muộn và sớm, quy tắc làm tròn; ca qua đêm thuộc ngày bắt đầu ca.
+Ví dụ: ca 07:30–17:00, nghỉ 90 phút; có mặt 07:40–17:00 thì thời gian thực tế sau nghỉ là 470 phút. Nếu không có dung sai, muộn 10 phút. Quy đổi công theo chính sách đã duyệt, không tự suy ra mức trừ lương.
+Thiếu vào hoặc ra: đánh dấu công chưa đủ dữ liệu, yêu cầu bổ sung; không tự tính đủ một công.
+Tăng ca phải có đề nghị và duyệt; ở lại quá giờ không tự trở thành tăng ca được trả lương.
+Đi công tác hoặc hỗ trợ cơ sở khác: chấm tại nơi thực tế, hạch toán theo phân công đã được duyệt.
+Ngoại lệ
+Chấm trùng dùng mã thao tác để loại trùng. Thời gian chồng lấn giữa hai ca không tính hai lần. Điều chỉnh sau khóa kỳ phải được mở lại có kiểm soát hoặc đưa vào kỳ điều chỉnh tiếp theo. Hệ thống thông báo nhân viên khi bảng công cá nhân thay đổi.
+
+8 Nghỉ phép và tổng hợp lương
+Nghỉ phép và đổi ca
+Nhân viên chọn loại nghỉ, thời gian, lý do và người bàn giao → kiểm tra số dư phép, ca trùng và nhân sự lớp → người duyệt chấp thuận hoặc từ chối → cập nhật lịch → tính ảnh hưởng đến công. Quản lý nhìn được cảnh báo thiếu giáo viên trước khi duyệt; ngưỡng theo cấu hình của trường.
+Đổi ca cần người nhận đồng ý và quản lý duyệt. Lưu người làm thực tế; không sửa ca quá khứ để che mất đi muộn. Nghỉ đột xuất có thể ghi nhận trước và hoàn thiện đơn sau với lịch sử đầy đủ.
+Chốt công cuối kỳ
+Nhân sự xử lý các lỗi công → nhân viên xem và phản hồi → hiệu trưởng hoặc người được giao duyệt → khóa bảng công. Kỳ khóa lưu bản chụp ca, lượt chấm, phép và điều chỉnh đã dùng. Đổi cấu hình ca sau đó không tự làm thay đổi kỳ đã khóa.
+Phạm vi lương đề xuất
+Bản đầu tổng hợp công và xuất dữ liệu sang bảng lương. Giai đoạn mở rộng xây bảng lương với lương theo hợp đồng, phụ cấp, thưởng, tăng ca, tạm ứng và khấu trừ đã được duyệt. Mỗi thành phần cần công thức, ngày hiệu lực và người chịu trách nhiệm.
+Ví dụ minh họa nội bộ: lương theo công = mức lương tính công × công được hưởng / công chuẩn của kỳ. Nếu 8.000.000 đồng, 25 công được hưởng và 26 công chuẩn thì phần lương theo công là 7.692.308 đồng khi làm tròn đến đồng. Đây là ví dụ cấu hình, không phải quy tắc trả lương bắt buộc.
+Duyệt và trả lương
+Lập bảng nháp → đối chiếu công, phép, ứng và điều chỉnh → duyệt → phát hành phiếu lương cá nhân → ghi nhận thanh toán → khóa kỳ. Nhân viên chỉ xem phiếu của mình. Trạng thái đã duyệt và đã trả phải tách riêng; có thể trả nhiều đợt.
+Điểm cần chốt trước khi triển khai
+Công chuẩn theo số ngày lịch, ngày làm thực tế hay giá trị cố định; nghỉ lễ, nghỉ phép và nghỉ không lương tính thế nào.
+Cách xử lý giáo viên làm hai cơ sở, phân bổ chi phí lương và phụ cấp theo ca hoặc theo tỷ lệ.
+Phạm vi tính các khoản theo nghĩa vụ hiện hành cần được đơn vị kế toán và nhân sự xác nhận trước khi tự động hóa.
+
+9 Học phí công nợ và thanh toán
+Thiết lập biểu phí
+Mỗi cơ sở có biểu phí theo năm học, nhóm tuổi, lớp hoặc gói học. Khoản thu gồm loại, số tiền hoặc đơn giá, chu kỳ, đối tượng, ngày hiệu lực, hạn đóng và quy tắc giảm trừ. Đăng ký dịch vụ có ngày bắt đầu và kết thúc; không thu trước hoặc sau khoảng hiệu lực nếu không có chính sách rõ ràng.
+Luồng lập khoản phải thu
+Kế toán chọn kỳ → lấy trẻ đủ điều kiện → áp biểu phí có hiệu lực → bổ sung dịch vụ, hoàn trừ và công nợ trước → kiểm tra → người có thẩm quyền duyệt → phát hành thông báo → phụ huynh xem và thanh toán. Bảng nháp được tính lại; bảng đã phát hành chỉ sửa qua chứng từ điều chỉnh.
+Ví dụ bảng thu tháng
+Thành phần
+ | Giá trị minh họa
+ | Học phí tháng
+ | 3.000.000 đồng
+ | Tiền ăn tạm thu
+ | 22 ngày × 35.000 = 770.000 đồng
+ | Dịch vụ đón muộn
+ | 200.000 đồng
+ | Giảm học phí
+ | −300.000 đồng
+ | Hoàn trừ tiền ăn kỳ trước
+ | −70.000 đồng
+ | Phải thu mới trong kỳ
+ | 3.600.000 đồng
+ | Nợ cũ chưa thanh toán
+ | 500.000 đồng
+ | Tổng còn phải đóng trước thanh toán
+ | 4.100.000 đồng
+ | 
+Nhận tiền và phân bổ
+Hỗ trợ tiền mặt, chuyển khoản và cổng thanh toán nếu tích hợp. Phiếu thu ghi số tiền, thời điểm, người thu, kênh và các khoản được phân bổ. Cho đóng một phần hoặc đóng dư; khoản dư là số dư có của phụ huynh hoặc trẻ theo mô hình đã chốt, không tự ghi thành doanh thu mới.
+Nợ cuối = nợ đầu + phải thu phát sinh + điều chỉnh tăng − giảm trừ − tiền đã phân bổ. Tiền thực nhận và tiền phân bổ được lưu riêng để xử lý giao dịch chưa xác định, hoàn và chuyển nhầm.
+Kiểm soát thanh toán
+Ảnh chuyển khoản do phụ huynh gửi chỉ đưa vào trạng thái chờ đối soát. Chỉ đánh dấu đã thanh toán khi được xác nhận từ nguồn tích hợp hợp lệ hoặc kế toán đối soát. Thông báo giao dịch trùng không được ghi thu hai lần; có khóa duy nhất theo nguồn và mã giao dịch.
+
+10 Tiền ăn điều chỉnh và thu chi
+Chốt suất ăn và hoàn trừ
+Mỗi cơ sở cấu hình giờ chốt, ngày áp dụng, buổi ăn, điều kiện hủy và cách hoàn. Cần lưu riêng suất dự kiến, suất đã chốt cho bếp, suất sử dụng thực tế và suất đủ điều kiện tính tiền để kế toán đối chiếu.
+Ví dụ đề xuất: nghỉ được duyệt và gửi trước 08:00 ngày học thì hủy suất ngày đó; gửi sau 08:00 vẫn tính tiền vì bếp đã chuẩn bị. Giờ 08:00 là tham số minh họa cần chủ trường quyết định. Vắng mặt thực tế không tự động đồng nghĩa được hoàn tiền ăn.
+Nếu tạm thu 22 suất × 35.000 đồng và có 2 suất đủ điều kiện hoàn thì hoàn trừ 70.000 đồng vào kỳ sau. Nếu trường thu theo thực tế, không đồng thời áp dụng hoàn từ tạm thu cho cùng suất. Mỗi suất chỉ có một kết quả tính phí cuối cùng.
+Nhập học giữa tháng và thôi học
+Chọn rõ cách tính học phí theo tháng đủ, theo ngày hoặc theo buổi; ngày nghỉ lễ có thu hay không; giới hạn ưu đãi và thứ tự áp dụng. Khi thôi học, lập bảng quyết toán gồm khoản chưa thu, dịch vụ đã dùng, tiền ăn, đặt cọc và số dư. Hoàn tiền cần phê duyệt và ghi nhận trả thực tế.
+Hủy và điều chỉnh chứng từ
+Phiếu đã phát hành không xóa. Hủy phải có lý do, người duyệt và bút toán đảo hoặc chứng từ điều chỉnh liên kết. Hoàn tiền không chỉ đổi trạng thái khoản phải thu; phải ghi khoản tiền ra và giảm số dư tương ứng. Giao dịch sai cơ sở cần luồng chuyển hoặc đảo đúng nơi phát sinh.
+Quản lý thu chi vận hành
+Ghi chi thực phẩm, vật tư, điện nước, thuê nhà, lương và chi khác theo cơ sở và danh mục. Quy trình: đề nghị → duyệt → thanh toán → đính kèm chứng từ → đối chiếu. Tách người đề nghị và người duyệt khi chính sách yêu cầu.
+Báo cáo tiền thực thu, khoản phải thu, thu chi và kết quả vận hành phải định nghĩa riêng. Không gọi số tiền đã thu là lợi nhuận. Bản đầu phục vụ quản trị nội bộ; tích hợp phần mềm kế toán hoặc hóa đơn là hạng mục riêng sau khi chốt yêu cầu.
+
+11 Dinh dưỡng kho và vận hành khác
+Bếp và thực đơn
+Lập thực đơn ngày hoặc tuần theo nhóm tuổi và cơ sở → duyệt → công bố cho phụ huynh → lấy số suất đã chốt → điều chỉnh theo dị ứng và chế độ ăn → ghi thực tế phục vụ. Bếp chỉ cần thông tin dị ứng có liên quan đến chế biến; không cần toàn bộ hồ sơ sức khỏe trẻ.
+Cảnh báo trẻ không dùng được món trong thực đơn; người phụ trách phải chọn món thay thế và ghi nhận. Trường hợp dùng bếp trung tâm phục vụ nhiều cơ sở cần số suất theo nơi nhận, phiếu giao nhận và phân bổ chi phí.
+Kho thực phẩm và vật tư
+Danh mục có mã, nhóm, đơn vị và quy đổi đơn vị. Nhập kho ghi nhà cung cấp, lô, hạn dùng, số lượng và đơn giá. Xuất theo ngày, bếp hoặc mục đích; kiểm kê tạo chênh lệch cần duyệt. Không cho tồn âm trừ khi có quyền ngoại lệ và lý do.
+Ưu tiên xuất lô sắp hết hạn; cảnh báo hàng hết hạn, tồn thấp và chênh lệch bất thường. Hàng trả, hỏng hoặc hủy cần giao dịch riêng. Kho của mỗi cơ sở được tách; chuyển kho có bên giao, bên nhận và trạng thái đang vận chuyển.
+Tài sản và bảo trì
+Quản lý bàn ghế, thiết bị bếp, đồ chơi, điều hòa và tài sản khác theo cơ sở, phòng và người phụ trách. Theo dõi bàn giao, hỏng, sửa, điều chuyển và thanh lý. Bản đầu chỉ cần danh sách cùng lịch sử; khấu hao tài sản là phạm vi mở rộng cần kế toán xác nhận.
+Đưa đón bằng xe nếu trường có dịch vụ
+Đăng ký tuyến và điểm đón, lịch đi, xe, người phụ trách và danh sách trẻ. Ghi nhận lên xe, xuống xe tại trường, lên xe về và bàn giao cuối. Có bước kiểm tra xe sau chuyến và đối chiếu số trẻ; không dùng trạng thái điểm danh lớp để thay thế kiểm soát trên xe.
+Quản lý chất lượng cơ sở
+Theo dõi yêu cầu sửa chữa, kiểm tra vệ sinh, phản ánh phụ huynh và công việc được giao. Mỗi việc có người phụ trách, hạn xử lý, mức ưu tiên, bằng chứng và kết quả. Các mục này có thể đưa sang giai đoạn sau để bản đầu tập trung vận hành lớp, thu phí và công.
+
+12 Báo cáo và cảnh báo quản trị
+Tổng quan chủ chuỗi
+Bộ lọc bắt buộc gồm khoảng thời gian, cơ sở, năm học và lớp khi phù hợp. Màn hình toàn chuỗi so sánh cơ sở về trẻ đang học, công suất lớp, chuyên cần, nợ học phí, nhân sự và tiền thực thu. Nhấp vào chỉ số để xem dữ liệu tạo thành chỉ số đó trong phạm vi được phép.
+Nhóm chỉ số
+ | Định nghĩa và cách đối chiếu
+ | Sĩ số
+ | Trẻ đang học tại ngày được chọn; tách học thử, bảo lưu và thôi học. Công suất = sĩ số / sức chứa cấu hình.
+ | Chuyên cần
+ | Số buổi có mặt / số buổi phải học của trẻ trong kỳ; loại ngày không học; xử lý nhập học giữa kỳ.
+ | Đón trả
+ | Trẻ đã nhận, đã trả, còn ở trường, thiếu xác nhận hoặc trả muộn; theo thời điểm thực tế.
+ | Học phí
+ | Phải thu, đã phân bổ, còn nợ, quá hạn, số dư; không cộng lặp nợ chuyển kỳ.
+ | Dòng tiền
+ | Tiền thực thu trừ tiền hoàn; khoản chi theo ngày thực trả; lọc kênh và cơ sở.
+ | Nhân sự
+ | Công đủ và thiếu, muộn, nghỉ, tăng ca đã duyệt; dữ liệu kỳ khóa tách khỏi kỳ chưa chốt.
+ | Vận hành
+ | Suất ăn chốt và sử dụng; sự cố; yêu cầu chưa xử lý; mức độ hoàn thành nhật ký.
+ | 
+Cảnh báo có người nhận và cách xử lý
+Trẻ còn ở trường sau giờ: giáo viên trực và quản lý cơ sở nhận; mở danh sách cần bàn giao.
+Thiếu lượt chấm hoặc ca trùng: nhân viên và nhân sự nhận; mở yêu cầu bổ sung hoặc sửa lịch.
+Nợ quá hạn: kế toán theo dõi; nhắc phụ huynh theo lịch và giới hạn tần suất được cấu hình.
+Thuốc đến giờ, dị ứng hoặc sự cố: người có nhiệm vụ nhận; có xác nhận đã tiếp nhận và chuyển cấp khi chưa xử lý.
+Xuất dữ liệu và khóa kỳ
+Cho xuất Excel theo bộ lọc và quyền, kèm thời điểm xuất và định nghĩa chỉ số. Báo cáo chốt kỳ lưu phiên bản dữ liệu; nếu mở lại kỳ phải đánh dấu bản báo cáo trước đã có thay đổi. Không dùng tổng doanh thu cộng lặp giữa cơ sở nguồn và nơi nhận tiền điều chuyển.
+
+13 Danh sách màn hình web quản trị
+Web dùng cho thao tác nhiều dữ liệu, duyệt, đối soát và cấu hình. Thanh đầu trang luôn hiển thị tổ chức, cơ sở hiện tại, năm học và vai trò; cơ sở không được phép truy cập không xuất hiện trong bộ chọn.
+Mã
+ | Màn hình
+ | Nội dung và thao tác chính
+ | W01
+ | Đăng nhập và chọn phạm vi
+ | Xác minh; chọn vai trò và cơ sở; khôi phục truy cập.
+ | W02
+ | Tổng quan chuỗi và cơ sở
+ | Chỉ số; cảnh báo; bộ lọc; truy về danh sách chi tiết.
+ | W03
+ | Cơ sở và cấu hình
+ | Lịch học; năm học; danh mục; biểu phí; phân quyền.
+ | W04
+ | Tuyển sinh
+ | Danh sách quan tâm; tư vấn; tham quan; chuyển nhập học.
+ | W05
+ | Trẻ và phụ huynh
+ | Hồ sơ; giám hộ; dịch vụ; trạng thái; chuyển lớp hoặc cơ sở.
+ | W06
+ | Lớp và phân công
+ | Sĩ số; giáo viên; lịch; lớp thay thế; phân công có thời hạn.
+ | W07
+ | Điểm danh và bàn giao
+ | Theo lớp và ngày; trẻ còn ở trường; yêu cầu sửa sai.
+ | W08
+ | Chăm sóc và sức khỏe
+ | Nhật ký; thực đơn; thuốc; đo tăng trưởng; sự cố.
+ | W09
+ | Nhân sự và ca
+ | Hồ sơ; hợp đồng; ca; lịch; nghỉ; điều động.
+ | W10
+ | Công và lương
+ | Lỗi công; bổ sung; duyệt; khóa kỳ; phiếu lương khi mở rộng.
+ | W11
+ | Học phí và công nợ
+ | Biểu phí; lập kỳ; duyệt; chi tiết khoản thu; nhắc nợ.
+ | W12
+ | Thu tiền và đối soát
+ | Phiếu thu; phân bổ; giao dịch chờ; hoàn; hủy và điều chỉnh.
+ | W13
+ | Thu chi và vận hành
+ | Đề nghị chi; quỹ; kho; tài sản; tuyến xe khi có.
+ | W14
+ | Thông báo và trao đổi
+ | Chọn phạm vi; duyệt; lên lịch; phản hồi và xác nhận.
+ | W15
+ | Báo cáo và nhật ký
+ | Báo cáo; xuất file; lịch sử sửa; truy cập nhạy cảm.
+ | 
+Quy chuẩn thao tác trên web
+Danh sách có tìm kiếm, bộ lọc, phân trang và tổng theo phạm vi. Trang chi tiết có lịch sử thay đổi. Mọi thao tác tiền hoặc khóa kỳ phải hiển thị tác động trước khi xác nhận. Tác vụ lập phí nhiều trẻ chạy nền và trả kết quả từng dòng; thử lại không tạo trùng.
+
+14 Màn hình app giáo viên và phụ huynh
+App giáo viên và nhân viên
+Mã
+ | Màn hình
+ | Tác vụ chính
+ | T01
+ | Trang chủ hôm nay
+ | Ca; lớp; trẻ cần chú ý; đơn chờ; công việc đến hạn.
+ | T02
+ | Lớp và trẻ
+ | Chọn lớp; xem hồ sơ cần thiết; nhận và trả; kiểm tra người đón.
+ | T03
+ | Nhật ký lớp
+ | Ghi ăn ngủ; hoạt động; ảnh; nháp và xuất bản.
+ | T04
+ | Thuốc và sự cố
+ | Nhận yêu cầu; ghi lần dùng; báo sự cố theo quyền.
+ | T05
+ | Chấm công
+ | Ca hiện tại; vào ra; trạng thái vị trí và đồng bộ.
+ | T06
+ | Công cá nhân và đơn
+ | Xem công; phản hồi; nghỉ phép; đổi ca; bổ sung công.
+ | T07
+ | Trao đổi và tài khoản
+ | Thông báo; tin nhắn; đổi cơ sở được giao; bảo mật.
+ | 
+App phụ huynh
+Mã
+ | Màn hình
+ | Tác vụ chính
+ | P01
+ | Trang chủ theo con
+ | Trạng thái ở trường; thông báo; lịch hôm nay; nhắc việc.
+ | P02
+ | Nhật ký và hoạt động
+ | Ăn ngủ; nhận xét; ảnh đã công bố; thực đơn.
+ | P03
+ | Xin nghỉ và dặn dò
+ | Gửi và theo dõi đơn; yêu cầu thuốc; ghi chú chăm sóc.
+ | P04
+ | Người đón
+ | Danh sách được phép; ủy quyền có thời hạn; thu hồi.
+ | P05
+ | Học phí
+ | Chi tiết khoản thu; lịch sử; hướng dẫn hoặc thanh toán tích hợp.
+ | P06
+ | Sức khỏe và hồ sơ
+ | Lần đo; lưu ý; cập nhật thông tin qua yêu cầu xác minh.
+ | P07
+ | Thông báo và hỗ trợ
+ | Trao đổi; xác nhận thông báo; liên hệ cơ sở; tài khoản.
+ | 
+Lựa chọn cách đóng gói app
+Đề xuất hai app trải nghiệm riêng: phụ huynh và nhân sự. App nhân sự thay giao diện theo quyền giáo viên, hiệu trưởng hoặc nhân viên; hiệu trưởng vẫn dùng web cho phê duyệt và báo cáo lớn. Có thể dùng chung nền tảng lập trình và máy chủ. Nếu ngân sách hạn chế, ưu tiên web quản trị và app có hai nhóm vai trò, nhưng luôn tách phạm vi dữ liệu.
+
+15 Mô hình dữ liệu và nguyên tắc hệ thống
+Nhóm thực thể cốt lõi
+Nhóm
+ | Thực thể và quan hệ chính
+ | Tổ chức và quyền
+ | Organization, Campus, User, Role, Membership. Membership gắn người dùng với tổ chức, cơ sở và thời hạn.
+ | Trẻ và lớp
+ | Child, Guardian, ChildGuardian, Class, Enrollment. Enrollment lưu lịch sử phân lớp và ngày hiệu lực.
+ | Điểm danh
+ | Attendance, Handover, PickupAuthorization, LeaveRequest. Lưu sự kiện và bản tổng hợp ngày.
+ | Chăm sóc
+ | DailyLog, MealRecord, SleepRecord, HealthRecord, MedicationRequest, MedicationAdministration, Incident.
+ | Nhân sự
+ | Employee, Contract, Assignment, Shift, Roster, Punch, Timesheet, Adjustment, PayrollRun.
+ | Tài chính
+ | FeePolicyVersion, ServiceRegistration, BillingRun, Receivable, Payment, Allocation, Credit, Refund, Expense.
+ | Vận hành
+ | Menu, MealOrder, StockLot, StockMovement, Asset, Notification, Consent, AuditLog.
+ | 
+Bất biến dữ liệu
+Dữ liệu cơ sở phải thuộc đúng tổ chức. Khóa ngoại giữa hai tổ chức khác nhau phải bị từ chối.
+Phụ huynh và trẻ là quan hệ nhiều với nhiều; nhân sự và cơ sở cũng vậy. Không gắn cứng một người với một cơ sở duy nhất.
+Không tạo hai kết quả điểm danh ngày cho cùng trẻ và buổi học; sự kiện nhận trả vẫn có thể nhiều lần theo quy trình được phép.
+Mỗi kỳ thu chỉ có một lần phát hành hợp lệ cho cùng trẻ và loại kỳ; điều chỉnh là chứng từ liên kết, không lập trùng.
+Số tiền lưu bằng đơn vị tiền nhỏ nhất hoặc kiểu số thập phân có kiểm soát; không dùng số thực gây sai làm tròn.
+Công nợ và số dư thay đổi qua giao dịch; không sửa trực tiếp con số tổng để khớp báo cáo.
+Định hướng kỹ thuật
+Đề xuất máy chủ tổ chức theo phân hệ trong một ứng dụng có cấu trúc rõ, cơ sở dữ liệu quan hệ, kho tệp riêng và hàng đợi tác vụ cho thông báo, ảnh, lập phí. App và web dùng cùng API có kiểm tra quyền. Chưa cần tách nhiều dịch vụ độc lập khi quy mô và nhóm phát triển chưa đòi hỏi.
+Các API thay đổi dữ liệu hỗ trợ chống gửi trùng, phiên bản bản ghi và giao dịch nhất quán. Thời gian sự kiện lưu chuẩn thống nhất, hiển thị theo giờ cơ sở; ngày học và ngày công được lưu riêng để tránh sai ngày khi quy đổi múi giờ.
+
+16 Bảo mật độ ổn định và kiểm soát thay đổi
+Bảo vệ dữ liệu và tài khoản
+Phân quyền tối thiểu; xác minh bổ sung cho tài khoản quản lý và thao tác nhạy cảm. Giới hạn thử đăng nhập, thu hồi phiên khi khóa tài khoản; không ghi mật khẩu, mã xác minh hoặc thông tin nhạy cảm vào log. Dữ liệu truyền qua kết nối mã hóa; bản sao lưu và tệp cần được kiểm soát truy cập.
+Thu thập dữ liệu trẻ theo mục đích vận hành; phân định quyền xem ảnh, sức khỏe và tài chính. Có thời hạn lưu cho từng nhóm dữ liệu và quy trình tiếp nhận yêu cầu truy cập, sửa hoặc xử lý dữ liệu. Thời hạn cụ thể cần chủ trường và đơn vị tư vấn xác nhận trước khi triển khai chính thức.
+Nhật ký kiểm tra
+Lưu ai, lúc nào, tổ chức và cơ sở nào, thao tác gì, bản ghi nào, giá trị trước và sau, lý do và kết quả. Ghi đặc biệt với sửa điểm danh, công, người đón, học phí, quyền và xuất hồ sơ. Người dùng thường không được sửa hoặc xóa nhật ký; hỗ trợ kỹ thuật truy cập có thời hạn và phải có dấu vết.
+Chỉ tiêu chất lượng đề xuất để thống nhất khi triển khai
+Danh sách và thao tác phổ biến: phản hồi trong 2 giây ở mức tải thử nghiệm đã chốt; báo cáo lớn chạy nền.
+Đường truyền yếu: hiển thị tải, thất bại và thử lại; không báo thành công trước khi máy chủ xác nhận.
+Sao lưu tự động, đề xuất mất dữ liệu tối đa 24 giờ và khôi phục trong 8 giờ ở giai đoạn đầu; đây là mục tiêu cần kiểm thử, chưa phải cam kết dịch vụ.
+Lập phí, gửi thông báo, đồng bộ công có trạng thái theo dõi và khả năng chạy lại an toàn.
+Kịch bản tải thử ban đầu
+Dùng mốc lập kế hoạch 10 cơ sở, 2.000 trẻ, 300 nhân viên và 200 phiên hoạt động đồng thời. Kiểm thử giờ nhận trẻ, gửi ảnh cuối ngày và phát hành phí đầu tháng. Nếu quy mô thực tế khác, cần điều chỉnh bộ dữ liệu và chỉ tiêu trước nghiệm thu.
+Tích hợp ngoài
+Ngân hàng, thanh toán, SMS, email, máy công, hóa đơn và bản đồ là các tích hợp tùy chọn. Mỗi tích hợp cần xác thực dữ liệu đến, đối soát, xử lý lỗi và chi phí sử dụng riêng. QR chuyển khoản không đồng nghĩa đã có xác nhận thanh toán tự động.
+
+17 Phạm vi triển khai và tiêu chí nghiệm thu
+Chia giai đoạn theo khả năng vận hành
+Giai đoạn
+ | Phạm vi và kết quả
+ | Bản đầu vận hành
+ | Nhiều cơ sở; tài khoản và quyền; lớp, trẻ, phụ huynh; nhận trả; xin nghỉ; nhật ký cơ bản; học phí và thu tiền đối soát thủ công; ca, chấm công, duyệt công; báo cáo thiết yếu.
+ | Mở rộng tiếp theo
+ | Thanh toán tự động; phân hệ thuốc và sức khỏe đầy đủ; tuyển sinh; bảng lương; thực đơn và kho; phê duyệt thu chi; báo cáo phân tích.
+ | Theo nhu cầu thực tế
+ | Xe đưa đón; máy công; kế toán và hóa đơn; quản lý tài sản sâu; bếp trung tâm; thương mại hóa cho nhiều tổ chức.
+ | 
+Dù chia giai đoạn, bản đầu vẫn phải có phân quyền máy chủ, hồ sơ người đón, nhật ký sửa sai, chống trùng giao dịch và cơ chế sao lưu. Những phần này ảnh hưởng trực tiếp tới độ tin cậy của dữ liệu vận hành.
+Các tình huống nghiệm thu bắt buộc
+AT01 Cô giáo cơ sở A không mở được danh sách, chi tiết, ảnh hoặc file xuất của cơ sở B, kể cả thay mã trong yêu cầu API.
+AT02 Phụ huynh có hai con chuyển xem đúng con; phụ huynh không liên kết bị từ chối truy cập.
+AT03 Hai giáo viên nhận cùng một bé không tạo hai lần có mặt; yêu cầu trả trẻ chưa nhận bị chặn.
+AT04 Người đón bị thu hồi quyền hoặc ủy quyền hết hạn không vượt qua bước xác nhận bàn giao.
+AT05 Nghỉ trước và sau mốc chốt suất cho kết quả tiền ăn đúng; sửa đơn sau chốt tạo điều chỉnh có lịch sử.
+AT06 Thanh toán một phần, dư và thông báo thanh toán trùng cho công nợ đúng; hủy hoặc hoàn không làm mất lịch sử.
+AT07 Ca qua đêm, thiếu lượt, đổi ca và làm nhiều cơ sở không tính trùng công; sửa kỳ khóa đúng thẩm quyền.
+AT08 Chuyển cơ sở giữa tháng giữ lịch sử, đổi quyền đúng ngày và xử lý phí, công nợ theo quyết định đã duyệt.
+AT09 Thử khôi phục bản sao lưu; tài khoản đã khóa không dùng lại phiên cũ; tác vụ thất bại chạy lại không tạo trùng.
+Cách đưa vào sử dụng
+Thí điểm một cơ sở, chạy đối chiếu một kỳ học phí và công với dữ liệu hiện có → xử lý chênh lệch → ký xác nhận kết quả → mở rộng. Mỗi cơ sở có người chịu trách nhiệm dữ liệu, kế hoạch đào tạo và phương án hỗ trợ trong giờ cao điểm.
+
+18 Các quyết định cần duyệt trước thiết kế chi tiết
+Những mục dưới đây là đầu vào để chuyển tài liệu này thành đặc tả màn hình, cấu trúc cơ sở dữ liệu và API. Chưa cần quyết định công nghệ trước khi thống nhất cách trường vận hành.
+Nội dung
+ | Phương án khởi đầu đề xuất
+ | Đối tượng dùng
+ | Trước hết một chủ chuỗi nhiều cơ sở; giữ khả năng mở rộng sang nhiều chủ trường.
+ | Quy mô
+ | Xác nhận số cơ sở, trẻ, lớp, nhân viên, phụ huynh và người dùng đồng thời.
+ | Kênh sử dụng
+ | Web quản trị; app phụ huynh; app nhân sự với quyền theo vai trò.
+ | Tài khoản của trẻ
+ | Bản đầu dùng hồ sơ trẻ và tài khoản người giám hộ thao tác thay.
+ | Cơ cấu duyệt
+ | Chủ trường duyệt quyền, hoàn và mở kỳ; hiệu trưởng duyệt vận hành và công theo hạn mức.
+ | Học phí
+ | Chốt khoản thu, chu kỳ, cách tính giữa tháng, ưu đãi và xử lý đặt cọc.
+ | Tiền ăn
+ | Chọn tạm thu hoàn trừ hoặc theo suất thực tế; chốt giờ báo nghỉ và điều kiện hoàn.
+ | Thanh toán
+ | Bản đầu đối soát thủ công; chọn ngân hàng hoặc đơn vị thanh toán khi cần tự động.
+ | Chấm công
+ | Chọn app vị trí hoặc máy công; ca, dung sai, phép, tăng ca và cách quy đổi công.
+ | Đón trả
+ | Danh sách người được phép; xác minh; đón thay; mất mạng; người chịu trách nhiệm cuối ngày.
+ | Dịch vụ thêm
+ | Xác nhận có xe, bếp trung tâm, ngoại khóa, camera hoặc chăm sóc ngoài giờ hay không.
+ | Dữ liệu đang có
+ | Mẫu Excel, biểu phí, sổ công, phiếu thu và biểu mẫu hiện hành của từng cơ sở.
+ | 
+Bộ tài liệu tiếp theo sau khi duyệt phạm vi
+Lập đặc tả từng màn hình với trường dữ liệu, nút thao tác, trạng thái, thông báo lỗi và quyền; mô hình dữ liệu có ràng buộc; danh mục API; bộ tình huống kiểm thử và danh sách công việc theo giai đoạn. Ưu tiên làm trọn một luồng từ đầu đến cuối thay vì chỉ dựng giao diện rời.
+Luồng nên dựng mẫu trước: chủ trường mở cơ sở → hiệu trưởng tạo lớp → thêm giáo viên và trẻ → liên kết phụ huynh → nhận trẻ → ghi nhật ký → trả trẻ → lập học phí → thu và đối soát; đồng thời giáo viên chấm công → duyệt → khóa kỳ.
+
+19 Phạm vi và sơ đồ điều hướng
+Bổ sung triển khai • 05/11/2026
+Phần này mô tả cách nối các màn thành quy trình chạy được. Đọc cùng phần nghiệp vụ gốc để lấy chính sách của trường. Các mã P và T trong mục 14 là nhóm chức năng gốc; mã APP bên dưới định danh màn triển khai chi tiết. Mã WEB.W01–W48 tham chiếu file Luong_web_quan_tri_mam_non.md; không dùng lẫn với nhóm W01–W15 trong mục 13.
+Mã
+ | Vai trò
+ | Điểm vào và phạm vi
+ | APP.P
+ | Phụ huynh
+ | Trang chủ, Nhật ký, Học phí, Tiện ích, Cá nhân. Chỉ trẻ liên kết và quyền cụ thể trên từng liên kết.
+ | APP.T
+ | Giáo viên
+ | Trang chủ, Lớp học, Nhật ký, Công cá nhân, Tiện ích. Chỉ lớp được giao theo thời hạn; bảng công của chính mình.
+ | APP.H
+ | Hiệu trưởng
+ | Tổng quan, Quản lý, Nhân sự, Phê duyệt, Cá nhân. Chỉ cơ sở được cấp; tài chính và lương cần quyền riêng.
+ | WEB.W
+ | Chủ chuỗi và nhân sự web
+ | Chủ chuỗi chọn toàn tổ chức hoặc một cơ sở. Hiệu trưởng, kế toán và nhân sự chỉ thấy phạm vi và chức năng được cấp.
+ | Luồng dùng chung APP.C01 đến APP.C04
+C01 Đăng nhập → C02 xác minh khi được yêu cầu → tải phiên và danh sách quyền → C03 chọn vai trò/cơ sở nếu có nhiều lựa chọn → trang chủ đúng vai trò. Tài khoản chưa kích hoạt xem hướng dẫn lời mời. Nếu chỉ có một phạm vi hợp lệ, đi thẳng vào trang chủ.
+C04 Cá nhân → Đổi vai trò/cơ sở → C03. Hỏi lưu hoặc bỏ nháp trước khi đổi; hủy yêu cầu đang chạy và bỏ kết quả trả về từ phạm vi cũ. Khi đăng xuất hoặc bị thu hồi phiên, dọn cache và file nhạy cảm của phiên rồi về C01.
+Thông báo mở đúng màn chi tiết sau khi kiểm tra phiên và quyền hiện hành. Nếu liên kết hết hiệu lực, báo không còn quyền và đưa về danh sách an toàn. Không đưa tên trẻ, dữ liệu sức khỏe hoặc số tiền vào nội dung thông báo màn hình khóa.
+Quy ước để triển khai
+Mỗi thao tác ghi dữ liệu phải có trạng thái đang gửi, lỗi có thể thử lại và kết quả từ máy chủ. Các trạng thái dưới đây là đề xuất triển khai; nếu hệ thống hiện có khác tên, lập bảng ánh xạ và giữ nguyên ý nghĩa. Mã màn là định danh đặc tả, không buộc tên route vật lý.
+
+20 App phụ huynh theo dõi và gửi yêu cầu
+APP.P01 đến APP.P04 Trang chủ và nhật ký
+P01 Trang chủ hiển thị bé đang chọn, cơ sở, lớp, tình trạng hôm nay và các nút Nhật ký, Xin nghỉ, Dặn dò, Người đón, Học phí. Chọn bé mở P02 chỉ liệt kê các liên kết hợp lệ. Khi đổi bé, tải lại tất cả thẻ và hủy phản hồi muộn của bé cũ.
+P03 Nhật ký: từ tab Nhật ký hoặc thẻ hôm nay → chọn ngày → xem giờ nhận/trả, ăn, ngủ, hoạt động và nhận xét đã công bố. P04 Thực đơn và album mở từ nhật ký; ảnh chỉ hiện nếu thuộc đối tượng được phép. Thiếu dữ liệu hiện “Chưa có cập nhật”, không suy thành trẻ vắng hoặc bỏ bữa.
+APP.P05 và APP.P06 Xin nghỉ và dặn dò
+P05 Xin nghỉ → chọn bé, ngày hoặc khoảng ngày, buổi và lý do → xem trước → Gửi đơn. Kiểm tra ngày kết thúc, ngày học, khoảng nghỉ trùng và trẻ còn theo học. Máy chủ trả mã đơn; chuyển chi tiết và hiện Chờ xác nhận. Không tự đổi điểm danh hoặc ghi có tiền ăn.
+Chi tiết đơn: Chờ xác nhận → Đã duyệt/Từ chối; có thể Hủy khi trạng thái và chính sách cho phép. Lý do từ chối hiển thị cho phụ huynh. Trạng thái suất ăn tách riêng: chưa chốt, đã hủy, vẫn tính hoặc chờ điều chỉnh. Sửa sau khi duyệt đi qua yêu cầu điều chỉnh.
+P06 Dặn dò hoặc Gửi thuốc → nhập nội dung, ngày áp dụng; với thuốc yêu cầu tên, liều theo hướng dẫn, khung giờ, thời hạn và tài liệu theo quy định cơ sở. Thiếu thông tin bắt buộc thì chặn gửi. Sau gửi hiện Chờ tiếp nhận; người được giao tiếp nhận hoặc từ chối có lý do, rồi ghi từng lần thực hiện. Phụ huynh chỉ xem kết quả thuộc con mình.
+APP.P07 và APP.P08 Người đón
+P07 danh sách người được phép → Thêm người đón thay → P08 nhập tên, quan hệ, thông tin xác minh cần thiết và khoảng hiệu lực → Gửi ủy quyền. Chọn bé cụ thể; giờ kết thúc phải sau giờ bắt đầu. Nếu cơ sở yêu cầu duyệt, hiện Chờ xác nhận trước khi có hiệu lực.
+Chi tiết ủy quyền hiển thị Chờ xác nhận/Có hiệu lực/Hết hạn/Đã thu hồi/Từ chối. Thu hồi có bước xác nhận. Giáo viên phải kiểm tra quyền hiện hành tại thời điểm bàn giao; màn hình cũ hoặc mã QR không đủ để xác nhận. Khi mất mạng dùng quy trình dự phòng của trường.
+
+21 App phụ huynh học phí và trao đổi
+APP.P09 đến APP.P11 Học phí và đối soát
+1. P09 Học phí → chọn bé và kỳ → hiện còn phải đóng, khoản mới, nợ cũ, hạn và lịch sử. Trạng thái chưa đến hạn và quá hạn tính theo ngày cơ sở; chỉ hiển thị số tiền nếu liên kết có quyền tài chính.
+2. P10 Chi tiết → xem từng khoản, miễn giảm, hoàn trừ và các khoản đã phân bổ. Ví dụ: phải thu mới 3.600.000 đ + nợ cũ 500.000 đ = 4.100.000 đ. Khi đã phân bổ 2.000.000 đ, còn 2.100.000 đ. Tài liệu số liệu là nguồn tham chiếu, không lấy con số phát sinh từ ảnh mẫu.
+3. P11 Thanh toán → chọn phương thức được cấu hình. Chuyển khoản thủ công hiển thị hướng dẫn; gửi ảnh biên nhận chỉ tạo Chờ đối soát. Nếu có cổng thanh toán, tạo phiên thanh toán và tra trạng thái khi quay về app; máy chủ xác minh kết quả, không tin trạng thái do thiết bị tự gửi.
+4. Khi có xác nhận và phân bổ, P09/P10 cập nhật Đã đóng một phần hoặc Đã thanh toán theo số dư. Nếu biên nhận bị từ chối, hiển thị lý do và hướng dẫn gửi lại. Tránh ghi thu trùng khi cùng giao dịch xuất hiện từ nhiều nguồn.
+APP.P12 đến APP.P14 Hồ sơ và liên lạc
+P12 Hồ sơ và sức khỏe → xem thông tin đã được phép, các lần đo, lưu ý chăm sóc. Yêu cầu sửa dữ liệu có trường thay đổi và lý do → Chờ xác minh → Đã cập nhật/Từ chối. Người giám hộ mới chỉ có quyền sau khi xác minh.
+P13 Thông báo → lọc chưa đọc → chi tiết → Xác nhận nếu được yêu cầu. Đã đọc khác Đã xác nhận. Nếu thông báo bị thu hồi hoặc người nhận đổi phạm vi, xử lý như nội dung không còn khả dụng.
+P14 Trao đổi → chọn giáo viên hoặc kênh hỗ trợ của cơ sở → xem hội thoại gắn với trẻ → gửi tin, theo dõi gửi lỗi và thử lại. Không cho tìm số điện thoại, hồ sơ hoặc hội thoại của gia đình khác.
+Kết quả cần nhìn thấy xuyên vai trò
+Đơn nghỉ từ P05 xuất hiện cho người được giao xử lý ở APP.T04 hoặc APP.H07. Sau khi duyệt, phụ huynh thấy trạng thái đơn và chính sách tiền ăn áp dụng. Nhật ký từ APP.T06 chỉ xuất hiện ở P03 sau khi công bố. Khoản thu và công nợ chỉ đổi sau giao dịch được xác nhận ở web.
+
+22 App giáo viên lớp học và chăm sóc
+APP.T01 đến APP.T04 Nhận trả và đơn nghỉ
+T01 Trang chủ → chọn cơ sở và lớp được giao → mở danh sách trẻ T02. Hiển thị riêng số có mặt, nghỉ, chưa xác nhận và còn ở trường. Ca làm của giáo viên đi vào Công cá nhân; hai loại điểm danh không dùng chung bản ghi.
+T02 Danh sách → chọn bé → Nhận trẻ ở T03. Hiện người đưa, giờ ghi nhận và lưu ý được phép xem. Xác nhận → máy chủ ghi sự kiện nhận và cập nhật có mặt. Nếu giáo viên khác đã nhận, tải bản ghi hiện tại, không tạo lần có mặt thứ hai.
+T03 Trả trẻ → chọn trẻ đã nhận → xem người đón và ủy quyền hiện hành → đối chiếu người đón theo quy trình trường → xác nhận giờ/người thực hiện. Nếu hết hạn, thu hồi, sai người hoặc chưa nhận trẻ thì chặn và hướng dẫn liên hệ quản lý. Trẻ đã trả không được xác nhận lặp; trường hợp nhận lại dùng quy trình sự kiện mới được phép.
+T04 Đơn nghỉ của lớp → chi tiết → xác nhận hoặc chuyển người duyệt theo quyền. Quyết định trả về P05. Tình trạng thực tế của trẻ vẫn đối chiếu ở T02. Yêu cầu sửa nhận/trả hoặc điểm danh đã chốt phải ghi lý do, đề nghị thay đổi và người duyệt.
+APP.T05 đến APP.T08 Nhật ký và an toàn
+T05 Nhật ký lớp → chọn ngày, lớp và trẻ → ghi bữa ăn, giấc ngủ, vệ sinh, nhận xét. Có thể dùng mẫu lớp rồi sửa từng bé. T06 Xem trước kiểm tra ngày, người nhận và quyền dùng ảnh → Lưu nháp hoặc Công bố. Bản nháp không hiện cho phụ huynh. Điều chỉnh sau công bố giữ lịch sử.
+T07 Thuốc → chỉ người có nhiệm vụ được mở → kiểm tra yêu cầu, hướng dẫn và xác nhận đã nhận thuốc → ghi từng lần theo giờ thực tế, người thực hiện, kết quả. Thiếu hướng dẫn thì yêu cầu bổ sung; không tự điền liều. Hủy hoặc tạm dừng phải lưu lý do.
+T08 Sự cố → chọn trẻ, thời gian, diễn biến, việc đã làm, người đã liên hệ → gửi người phụ trách → Theo dõi/Đã xử lý. Trường hợp khẩn cấp thực hiện quy trình liên hệ trực tiếp trước, cập nhật hồ sơ sau. Không công bố sự cố vào album lớp.
+Giới hạn quyền khi thay lớp
+Giáo viên dạy thay chỉ được thao tác trong lớp và thời gian phân công. Khi hết quyền trong lúc đang nhập, yêu cầu lưu phải bị từ chối, giao diện giải thích và không hiển thị lại dữ liệu của lớp ngoài phạm vi.
+
+23 App giáo viên công cá nhân
+APP.T09 đến APP.T13 Ca công và trao đổi
+T09 Chấm công → hiển thị ca, cơ sở thực tế, giờ máy chủ và tình trạng kiểm tra vị trí nếu áp dụng. Trước lượt vào hiện Chấm vào; sau lượt vào hợp lệ hiện Chấm ra. Lượt thành công chỉ được xác nhận sau phản hồi máy chủ. Ngoài phạm vi hoặc mất định vị: hiển thị lý do và đường vào đề nghị xác nhận thủ công.
+T10 Bảng công cá nhân → chọn kỳ, lọc bất thường → mở ngày công xem ca, lượt gốc và kết quả. Thiếu lượt vào hoặc ra là Chưa đủ dữ liệu, không tự tính đủ công. Bản ghi chờ đồng bộ hiển thị thời gian thiết bị và trạng thái riêng.
+T11 Bổ sung công → chọn ca và lượt cần sửa, nhập giờ đề nghị, lý do và tệp nếu cần → Gửi. H07 hoặc WEB.W25 xem trước/sau và duyệt. Khi duyệt, giữ lượt gốc và thêm điều chỉnh có liên kết. Kỳ đã khóa chỉ mở lại theo quyền hoặc xử lý qua kỳ điều chỉnh.
+T12 Lịch ca và nghỉ phép → xem ca đã công bố → Xin nghỉ/Đổi ca → chọn ngày, lý do và người bàn giao. Đổi ca cần đồng ý của người nhận và người quản lý duyệt. Lịch cập nhật sau khi quy trình hoàn tất, không thay ca đã qua để xóa lỗi công.
+T13 Tiện ích → phiếu lương của mình nếu đã phát hành, thông báo, tin nhắn, cài đặt. Phân biệt phiếu đã phát hành và tiền đã chi. Hạn chế xem dữ liệu lương qua thông báo hoặc tài khoản khác.
+Kiểm tra tích hợp
+1. Cô Lan có ca 07:30–17:00; ghi vào hợp lệ rồi vào lại màn vẫn thấy Chấm ra. Gửi lại cùng thao tác không tạo bản ghi mới.
+2. Ngày 14/10 thiếu lượt ra, cô gửi đề nghị 17:05. Người duyệt thấy giờ gốc, giờ đề nghị và lý do; sau duyệt app hiện kết quả điều chỉnh nhưng lượt gốc không bị ghi đè.
+3. Ca có giờ qua nửa đêm được gắn với ngày bắt đầu ca. Nếu hai phân công ở hai cơ sở chồng lấn, lịch phải phát hiện xung đột; không cộng hai lần cùng khoảng thời gian.
+
+24 App hiệu trưởng tổng quan và quản lý
+APP.H01 đến APP.H06 Danh mục vận hành
+Màn
+ | Điểm vào và nội dung
+ | Hành động và kết quả
+ | H01 Tổng quan
+ | Sau đăng nhập; cơ sở, ngày, trẻ hiện diện, trẻ chưa trả và việc chờ
+ | Mở thẻ vào danh sách đã lọc. Hiện ngày cập nhật. Không có quyền toàn chuỗi thì không có bộ chọn toàn chuỗi.
+ | H02 Chọn cơ sở
+ | Bộ chọn ở đầu H01 hoặc Cá nhân
+ | Chỉ liệt kê cơ sở được giao. Đổi cơ sở tải lại chỉ số, lớp, hàng chờ và báo cáo. Không mở rộng quyền do thay bộ lọc.
+ | H03 Lớp và trẻ
+ | Quản lý → Lớp học → chọn lớp hoặc hồ sơ trẻ
+ | Xem sĩ số, giáo viên, tình trạng học. Tạo hoặc phân công nếu được cấp quyền; kiểm tra sức chứa và trùng lịch. Thay đổi có ngày hiệu lực.
+ | H04 Theo dõi đón trả
+ | H01 → Trẻ chưa trả hoặc Quản lý → Đón trả
+ | Xem các bé còn ở trường và người được phép đón. Liên hệ người trực; mở yêu cầu sửa sai. Không ép xác nhận bàn giao bằng cách sửa điểm danh.
+ | H05 Chăm sóc và sự cố
+ | Quản lý → Chăm sóc
+ | Xem nhật ký đã hoặc chưa công bố, yêu cầu thuốc và sự cố trong phạm vi. Giao xử lý; theo dõi kết quả. Chỉ dữ liệu công bố đúng quyền mới sang app phụ huynh.
+ | H06 Nhân sự và ca
+ | Tab Nhân sự → người hoặc lịch
+ | Xem phân công, ca và cảnh báo thiếu người; thay thế có thời hạn. Kiểm tra chồng ca trước công bố. Nhân viên nhận lịch mới trên app.
+ | Mẫu luồng hằng ngày
+H01 chọn cơ sở → kiểm tra trẻ chưa trả ở H04 → xem người phụ trách và giờ nhận → liên hệ lớp → nhận kết quả bàn giao hợp lệ → chỉ số trên H01 được cập nhật từ máy chủ. Nếu cần sửa giờ đã chốt, tạo đề nghị có lý do qua H07; không chỉnh thẳng số tổng.
+
+25 App hiệu trưởng phê duyệt và báo cáo
+APP.H07 đến APP.H11 Hàng chờ và quyết định
+1. H07 Phê duyệt → nhóm nghỉ trẻ, người đón, sửa điểm danh, công/phép, chuyển lớp hoặc tài chính khi có quyền. Bộ lọc gồm cơ sở, loại, trạng thái và khoảng thời gian. Mở từng bản ghi sang H08.
+2. H08 Chi tiết duyệt → xem người gửi, thời điểm, phạm vi, nội dung trước/sau, bằng chứng và tác động. Chọn Duyệt hoặc Từ chối; từ chối bắt buộc có lý do. Việc vượt quyền hoặc hạn mức đưa về người có thẩm quyền, không hiện nút duyệt.
+3. H09 Xác nhận quyết định → hiển thị đối tượng và tác động → gửi mã thao tác chống lặp. Nếu người khác xử lý trước hoặc phiên bản đổi, hiện kết quả mới nhất và yêu cầu xem lại. Khi thất bại giữ lý do đã nhập. Chỉ phản ánh Đã duyệt sau khi máy chủ xác nhận.
+4. H10 Báo cáo → chọn cơ sở, thời gian và nhóm chỉ số → mở dữ liệu chi tiết. Phân biệt số đang học, có mặt và còn ở trường; phải thu, đã phân bổ và tiền thực thu là chỉ số khác nhau. Xuất dữ liệu nếu có quyền; báo cáo lớn xử lý ở web.
+5. H11 Cá nhân → quản lý phiên, đổi phạm vi, cấu hình thông báo. Hành động tài chính, kỳ công đã khóa và xuất dữ liệu nhạy cảm kiểm tra quyền riêng ngay trước khi thực hiện.
+Loại duyệt
+ | Kết quả sau khi máy chủ ghi thành công
+ | Nghỉ trẻ và người đón
+ | Phụ huynh nhận trạng thái. Danh sách lớp và xác minh bàn giao cập nhật theo hiệu lực; tiền ăn áp dụng quy tắc chốt riêng.
+ | Nghỉ phép và đổi ca
+ | Giáo viên nhận quyết định; lịch chỉ đổi khi đủ đồng ý và đã bố trí người thay theo quy định.
+ | Sửa điểm danh hoặc công
+ | Sinh điều chỉnh có người duyệt, lý do và giá trị trước/sau. Bản gốc vẫn xem được theo quyền.
+ | Chuyển lớp hoặc cơ sở
+ | Thay phân lớp theo ngày hiệu lực; quyền giáo viên cũ/mới đổi theo thời gian. Công nợ và đặt cọc xử lý theo quyết định riêng.
+ | Tài chính nếu được cấp
+ | Duyệt kỳ thu, hoàn hoặc chi theo thẩm quyền. Đã duyệt khác Đã phát hành, Đã thu và Đã chi.
+ | 
+26 Web quản trị và đồng bộ với app
+Mã dưới đây theo bộ 48 màn web. Chủ chuỗi vận hành toàn tổ chức; hiệu trưởng và các vai trò kế toán, nhân sự, y tế, bếp chỉ thực hiện phần việc được giao.
+Phân hệ
+ | Chuỗi màn web và điểm bàn giao
+ | Khởi tạo
+ | W01 → W02 → W03–W07 → W48. Tạo cơ sở, lịch, quyền, lời mời; app tải quyền mới sau khi tài khoản kích hoạt.
+ | Tuyển sinh và lớp
+ | W08–W09 → W12 → W10–W11 → W14–W15. Duyệt nhập học, gán lớp, liên kết phụ huynh. Chuyển cơ sở qua W13 và W47.
+ | Điểm danh và chăm sóc
+ | W16–W17 tổng hợp app giáo viên. W18–W20 theo dõi nhật ký, thuốc và sự cố. Sửa sai theo quyền qua W47.
+ | Công và lương
+ | W21–W23 xếp nhân sự và ca → APP.T09 → W24–W26 xử lý công và phép → khóa kỳ → W27–W28 phát hành lương khi bật tính năng.
+ | Học phí và thu tiền
+ | W29 biểu phí → W30 tính nháp → W47 duyệt → W31–W32 phát hành và công nợ → W33 thu trực tiếp hoặc W34 đối soát → W35 điều chỉnh. P09–P11 phản ánh số mới.
+ | Vận hành bổ sung
+ | W36 thu chi; W37 thực đơn và suất ăn; W38 kho; W39 tài sản; W40 xe. Đóng chuyến sau khi đối chiếu số trẻ và kiểm tra xe.
+ | Liên lạc và hệ thống
+ | W41–W43 soạn, gửi và xử lý phản ánh; W44 báo cáo; W45 nhật ký; W46 nhập và sao lưu; W47 phê duyệt; W48 tổng quan cơ sở.
+ | Quy tắc thao tác trên web
+Trước phát hành kỳ thu, khóa công, thu/hoàn tiền hoặc nhập hàng loạt: hiển thị phạm vi, bản ghi bị tác động và số dòng lỗi. Lệnh chạy nền có trạng thái tiếp nhận, xử lý, hoàn thành hoặc lỗi theo dòng.
+Đối soát tách phiếu gửi của phụ huynh khỏi giao dịch thực. Hoàn tiền chỉ ghi chi khi đã chi thực tế. Không xóa chứng từ gốc khi điều chỉnh.
+Mỗi phê duyệt ghi vai trò, cơ sở, người lập, người duyệt và kết quả. Tài khoản bị thu hồi phải mất quyền cả với đường dẫn sâu, file và xuất báo cáo.
+
+27 Hợp đồng triển khai dữ liệu và API
+Phạm vi và dữ liệu tối thiểu
+Tenant là tổ chức; cơ sở thuộc tổ chức. Tài khoản cá nhân có phân quyền theo cơ sở và thời hạn. Máy chủ kiểm tra phạm vi cho danh sách, chi tiết, tệp, ghi dữ liệu và báo cáo. Không tin role, campusId, childId do app gửi nếu không đối chiếu với phiên và bản ghi. Các khóa cache phải gồm tổ chức, cơ sở, tài khoản, vai trò và phạm vi trẻ/lớp khi liên quan.
+Nhóm
+ | Dữ liệu và điều kiện cần có
+ | Trẻ và quyền
+ | Trẻ, đợt theo học, lớp, cơ sở, liên kết giám hộ, quyền từng liên kết, phân công giáo viên có hiệu lực.
+ | Nhận trả và chăm sóc
+ | Sự kiện nhận/trả bất biến, điểm danh theo ngày/buổi, ủy quyền, nhật ký nháp/công bố, yêu cầu thuốc và lần thực hiện.
+ | Công và duyệt
+ | Ca được công bố, lượt chấm gốc, đề nghị sửa, quyết định, bản chụp kỳ khóa. Không tính công từ dữ liệu thiếu lượt.
+ | Thu và phân bổ
+ | Phiên bản biểu phí, kỳ thu, khoản phải thu, giao dịch nhận tiền, phân bổ, biên nhận chờ kiểm tra và chứng từ điều chỉnh.
+ | Ví dụ hợp đồng để Claude ánh xạ vào dự án
+GET phiên trả về các phạm vi được cấp và ngày hiệu lực. GET tổng quan trả chỉ số theo cơ sở và thời gian cập nhật. Danh sách có bộ lọc, phân trang và chi tiết theo ID.
+Lệnh nhận/trả gồm trẻ, ngữ cảnh lớp, mã thao tác; trả trẻ thêm người đón hoặc ủy quyền và thông tin xác minh. Máy chủ kiểm tra quyền, trạng thái và hiệu lực trước khi ghi trong cùng giao dịch.
+Lệnh phê duyệt gồm mã yêu cầu, quyết định, lý do khi bắt buộc, phiên bản mong đợi và mã chống gửi trùng. Kết quả trả trạng thái mới và phiên bản; thông báo chỉ phát sau khi ghi thành công.
+Máy chủ lưu thời gian sự kiện và quy đổi ngày nghiệp vụ theo múi giờ cơ sở; ghi nhận thời gian thiết bị riêng khi chờ đồng bộ. Tiền VND dùng số nguyên; trạng thái công nợ tính từ các khoản đã xác nhận và phân bổ.
+Đề xuất chuẩn lỗi: 401 phiên hết hạn, 403 thiếu quyền, 404 không tìm thấy trong phạm vi, 409 xung đột trạng thái/phiên bản, 422 dữ liệu không hợp lệ. App giữ nháp khi có lỗi và xử lý yêu cầu thử lại theo loại.
+Điều kiện giao diện
+Dùng token và component của MamNon App Design System v1.0. Mỗi màn có tải, rỗng, lỗi, thử lại và không đủ quyền. Chế độ mất mạng phân biệt dữ liệu cũ với dữ liệu chờ gửi. Chưa kết nối API chỉ được gắn nhãn demo; không giả thành công cho giao dịch hoặc bàn giao trẻ.
+
+28 Thứ tự thực hiện và nghiệm thu
+Chia việc để chạy theo đợt
+1. Kiểm tra repo, hướng dẫn dự án và stack đã dùng. Lập bảng ánh xạ mã APP/WEB sang route và module. Nếu chưa có stack hoặc chính sách trường, ghi giả định vào README và để cấu hình các quy tắc chưa chốt.
+2. Tạo nền phiên, quyền, seed hai cơ sở, điều hướng và component chung. Kiểm tra cách ly dữ liệu trước khi mở phân hệ nghiệp vụ.
+3. Chạy một luồng dọc: web tạo cơ sở/lớp/trẻ → liên kết phụ huynh → giáo viên nhận và trả trẻ → phụ huynh thấy trạng thái → hiệu trưởng theo dõi. Sau đó thêm nhật ký, nghỉ trẻ, người đón và sự cố.
+4. Làm công cá nhân, lịch, sửa công và phê duyệt. Tiếp theo làm kỳ thu, thu/đối soát, công nợ. Lương đầy đủ, cổng thanh toán, kho, xe và báo cáo nâng cao bật theo phạm vi đã chốt. Mỗi đợt giao được màn, dữ liệu, API và kiểm thử.
+Kịch bản nghiệm thu bắt buộc
+AC01: Giáo viên A thay ID trẻ/file của cơ sở B vẫn bị từ chối; phụ huynh hai con chỉ thấy hai liên kết hợp lệ. Đổi cơ sở khi đang tải không hiện phản hồi cũ.
+AC02: Hai thiết bị nhận cùng một trẻ chỉ sinh một kết quả hợp lệ; ủy quyền bị thu hồi hoặc hết hạn bị chặn lúc trả; app không báo đã trả khi chỉ lưu cục bộ.
+AC03: Xin nghỉ trước/sau mốc chốt cho kết quả tiền ăn theo cấu hình; duyệt đơn không tự ghi trẻ vắng khi thực tế trẻ đã đến.
+AC04: Thiếu lượt ra không tính đủ công; hai người duyệt đồng thời chỉ một quyết định ghi thành công; kỳ khóa không bị sửa thẳng.
+AC05: Thu 2.000.000 đ trên số phải đóng 4.100.000 đ còn 2.100.000 đ; gửi ảnh biên nhận chưa giảm nợ; gửi lại giao dịch đã ghi không thu trùng.
+AC06: Hiệu trưởng không có quyền tài chính không duyệt hoàn dù mở được yêu cầu theo quyền đọc; người có quyền phải thấy khác biệt giữa đã duyệt và đã chi.
+Chỉ dẫn giao cho Claude
+Đọc phần nghiệp vụ gốc, phụ lục này và Design System. Làm theo từng đợt, ưu tiên luồng dọc với dữ liệu seed. Với mỗi đợt, ghi mã màn đã làm, file/route, API, dữ liệu mẫu, cách chạy và kết quả test. Báo rõ mục còn giả lập, mục cần trường chốt và bước tiếp theo. Không coi màn tĩnh hoặc kết quả mock là nghiệp vụ đã chạy.
